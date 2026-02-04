@@ -8,6 +8,7 @@ import errorHandler from './error/errorHandler.middleware';
 
 import { PORT } from './constants/environmentVariables';
 import logger from './utils/logger/logger';
+import { verifyFirebaseToken } from './auth/auth.middleware';
 
 // Initialize Firebase Admin SDK
 initializeFirebase();
@@ -28,9 +29,7 @@ app.use(express.json());
 
 app.use('/api/unsecured', testRoutes);
 
-const port = 3000;
-
-
+app.use(verifyFirebaseToken);
 
 // catch all for undefined routes
 app.use((req, _res, next) => {

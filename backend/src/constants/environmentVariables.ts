@@ -6,15 +6,12 @@ function getEnv(key: string, defaultValue?: string): string {
   }
 
   return value;
-
 }
 /*
  * GENERAL ENVIROMENT VARIABLES
  */
 export const NODE_ENV = getEnv('NODE_ENV', 'development');
 export const PORT = getEnv('PORT', '3000');
-
-
 
 /*
  * FIREBASE ENVIROMENT VARIABLES
