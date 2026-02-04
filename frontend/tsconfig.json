@@ -17,8 +17,7 @@
     "paths": {
       "~/*": ["./app/*"]
     },
-    /* Added ignore Deprecations as VSCode does not like deprecated stuff*/
-    "ignoreDeprecations": "6.0",
+
     "esModuleInterop": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
