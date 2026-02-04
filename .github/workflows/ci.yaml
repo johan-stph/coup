@@ -2,11 +2,9 @@ name: FMT, LINT, TYPECHECK, BUILD
 
 on:
   push:
-    branches: [main]
-    paths: ["frontend/**"]
+    branches: ["main"]
   pull_request:
-    branches: [main]
-    paths: ["fronend/**"]
+    branches: ["main"]
 
 jobs:
   website:
