@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 
-export function meta({}: Route.MetaArgs) {
+export function meta(_unused: Route.MetaArgs) {
   return [
     { title: "Coup - der beste Coup den du je hattest" },
     { name: "description", content: "Welcome to have fun with your friends" },
