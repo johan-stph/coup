@@ -1,7 +1,5 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
 import winston from 'winston';
+import { NODE_ENV } from '../../constants/environmentVariables';
 
 // Define log levels
 const levels = {
@@ -47,7 +45,7 @@ const transports = [
 
 // Create the logger instance
 const logger = winston.createLogger({
-  level: process.env.NODE_ENV === 'development' ? 'debug' : 'warn',
+  level: NODE_ENV === 'development' ? 'debug' : 'warn',
   levels,
   format,
   transports,
