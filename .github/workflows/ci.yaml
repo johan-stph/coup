@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         # force was needed, cause of shadcn/ui and react 19
-        run: npm ci --force
+        run: npm ci
 
       - name: Check formatting
         run: npm run format:check
