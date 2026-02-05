@@ -111,14 +111,27 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Subtle background gradient */
 .bg-radial-glow {
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 45, 85, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse at 50% 100%, rgba(255, 45, 85, 0.04) 0%, transparent 40%),
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgba(255, 45, 85, 0.08) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse at 50% 100%,
+      rgba(255, 45, 85, 0.04) 0%,
+      transparent 40%
+    ),
     var(--color-void);
 }

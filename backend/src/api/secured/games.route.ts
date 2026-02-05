@@ -67,9 +67,7 @@ router.get('/', async (_req: AuthRequest, res: Response) => {
       })),
     });
   } catch {
-    res
-      .status(INTERNAL_SERVER_ERROR)
-      .json({ error: 'Failed to fetch games' });
+    res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to fetch games' });
   }
 });
 
@@ -126,9 +124,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       res.status(400).json({ error: error.errors });
       return;
     }
-    res
-      .status(INTERNAL_SERVER_ERROR)
-      .json({ error: 'Failed to create game' });
+    res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to create game' });
   }
 });
 
