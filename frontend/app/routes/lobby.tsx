@@ -1,0 +1,88 @@
+import { useLocation, useNavigate } from "react-router";
+
+interface LobbyState {
+  gameCode: string;
+  lobbyName: string;
+}
+
+export default function Lobby() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const state = location.state as LobbyState | null;
+
+  if (!state?.gameCode) {
+    return (
+      <div className="bg-radial-glow scanlines flex min-h-screen flex-col items-center justify-center text-white">
+        <p className="font-mono text-sm text-text-muted">
+          No active lobby session.
+        </p>
+        <button
+          onClick={() => navigate("/")}
+          className="mt-4 font-mono text-xs text-neon-red transition-colors hover:text-white hover:cursor-pointer"
+        >
+          {"< RETURN TO BASE"}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-radial-glow scanlines flex min-h-screen flex-col text-white">
+      {/* Top bar */}
+      <header className="flex items-center justify-between px-6 py-4">
+        <button
+          onClick={() => navigate("/")}
+          className="font-mono text-xs tracking-widest text-text-muted transition-colors hover:text-white hover:cursor-pointer"
+        >
+          {"< EXIT LOBBY"}
+        </button>
+        <div className="flex items-center gap-2 font-mono text-xs tracking-widest text-neon-red-dim">
+          <span className="status-pulse inline-block h-2 w-2 rounded-full bg-neon-red" />
+          LOBBY.ACTIVE
+        </div>
+      </header>
+
+      {/* Main lobby content */}
+      <main className="flex flex-1 flex-col items-center justify-center gap-10 px-4 pb-16">
+        {/* Lobby name */}
+        <div className="flex flex-col items-center gap-2">
+          <span className="font-mono text-[10px] tracking-[0.3em] text-text-muted">
+            LOBBY
+          </span>
+          <h1 className="font-display text-3xl font-bold tracking-wider text-white sm:text-4xl">
+            {state.lobbyName.toUpperCase()}
+          </h1>
+        </div>
+
+        {/* Game code display */}
+        <div className="corner-brackets corner-brackets-bottom">
+          <div className="flex flex-col items-center gap-3 bg-surface px-12 py-8">
+            <span className="font-mono text-[10px] tracking-[0.3em] text-text-muted">
+              GAME CODE
+            </span>
+            <span className="logo-glow font-display text-5xl font-black tracking-[0.4em] text-neon-red sm:text-6xl">
+              {state.gameCode}
+            </span>
+            <span className="font-mono text-[10px] text-text-muted">
+              Share this code with other operatives
+            </span>
+          </div>
+        </div>
+
+        {/* Players section */}
+        <div className="flex flex-col items-center gap-4">
+          <span className="font-mono text-[10px] tracking-[0.3em] text-text-muted">
+            OPERATIVES IN LOBBY
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-2 w-2 rounded-full bg-online-green" />
+            <span className="font-mono text-sm text-white">You</span>
+          </div>
+          <p className="font-mono text-[10px] text-text-muted status-pulse">
+            Waiting for operatives to join...
+          </p>
+        </div>
+      </main>
+    </div>
+  );
+}
