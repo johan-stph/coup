@@ -19,7 +19,7 @@ export default function CreateGameModal({
 
   if (!open) return null;
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: { preventDefault: () => void }) {
     e.preventDefault();
     if (lobbyName.trim()) {
       onConfirm(lobbyName.trim());
