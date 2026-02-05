@@ -43,7 +43,8 @@ export default function CreateGameModal({
             </h2>
             <button
               onClick={onClose}
-              className="font-mono text-xs text-text-muted transition-colors hover:text-white hover:cursor-pointer"
+              disabled={loading}
+              className="font-mono text-xs text-text-muted transition-colors hover:text-white hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               [ESC]
             </button>
