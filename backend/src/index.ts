@@ -1,3 +1,4 @@
+import './openapi/extendZod.js';
 import express from 'express';
 import cors from 'cors';
 import { initializeFirebase } from './auth/firebaseSetup';
@@ -9,6 +10,8 @@ import errorHandler from './error/errorHandler.middleware';
 import { PORT } from './constants/environmentVariables';
 import logger from './utils/logger/logger';
 import { verifyFirebaseToken } from './auth/auth.middleware';
+import openApiRouter from './openapi/openApiRouter.js';
+import gamesRoutes from './api/secured/games.route.js';
 
 // Initialize Firebase Admin SDK
 initializeFirebase();
@@ -28,8 +31,11 @@ app.use(
 app.use(express.json());
 
 app.use('/api/unsecured', testRoutes);
+app.use('/api', openApiRouter);
 
 app.use(verifyFirebaseToken);
+
+app.use('/api/games', gamesRoutes);
 
 // catch all for undefined routes
 app.use((req, _res, next) => {
@@ -53,6 +59,7 @@ async function startServer(): Promise<void> {
     // Then start the Express server
     app.listen(PORT, () => {
       logger.info(`Server running at http://localhost:${PORT}`);
+      logger.info(`API docs available at http://localhost:${PORT}/api/docs`);
     });
   } catch (err) {
     logger.error('Failed to start the server:', err);
