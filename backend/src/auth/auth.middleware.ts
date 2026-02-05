@@ -5,7 +5,7 @@ import logger from '../utils/logger/logger';
 
 const userSchema = z.object({
   uid: z.string(),
-  email: z.string().email(),
+  email: z.string().email().optional(),
 });
 
 // Define the extended request type

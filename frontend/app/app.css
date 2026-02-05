@@ -4,4 +4,134 @@
   --font-sans:
     "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-display: "Orbitron", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Share Tech Mono", ui-monospace, monospace;
+
+  --color-void: #0a0a0f;
+  --color-void-light: #12121a;
+  --color-neon-red: #ff2d55;
+  --color-neon-red-dim: #8b1a30;
+  --color-neon-cyan: #00e5ff;
+  --color-neon-magenta: #c026d3;
+  --color-surface: #1a1a2e;
+  --color-surface-light: #252540;
+  --color-text-muted: #6b7280;
+  --color-online-green: #22c55e;
+}
+
+/* Scanline overlay */
+.scanlines::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* Logo glow */
+.logo-glow {
+  text-shadow:
+    0 0 20px rgba(255, 45, 85, 0.6),
+    0 0 40px rgba(255, 45, 85, 0.3),
+    0 0 80px rgba(255, 45, 85, 0.15);
+}
+
+/* Button glow on hover */
+.btn-glow:hover {
+  box-shadow:
+    0 0 15px rgba(255, 45, 85, 0.4),
+    inset 0 0 15px rgba(255, 45, 85, 0.1);
+}
+
+/* Corner bracket decoration */
+.corner-brackets {
+  position: relative;
+}
+
+.corner-brackets::before,
+.corner-brackets::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-color: var(--color-neon-red-dim);
+}
+
+.corner-brackets::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+}
+
+.corner-brackets::after {
+  top: -1px;
+  right: -1px;
+  border-top: 2px solid;
+  border-right: 2px solid;
+}
+
+.corner-brackets-bottom {
+  position: relative;
+}
+
+.corner-brackets-bottom::before,
+.corner-brackets-bottom::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-color: var(--color-neon-red-dim);
+}
+
+.corner-brackets-bottom::before {
+  bottom: -1px;
+  left: -1px;
+  border-bottom: 2px solid;
+  border-left: 2px solid;
+}
+
+.corner-brackets-bottom::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid;
+  border-right: 2px solid;
+}
+
+/* Status dot pulse */
+.status-pulse {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Subtle background gradient */
+.bg-radial-glow {
+  background:
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgba(255, 45, 85, 0.08) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse at 50% 100%,
+      rgba(255, 45, 85, 0.04) 0%,
+      transparent 40%
+    ),
+    var(--color-void);
 }
