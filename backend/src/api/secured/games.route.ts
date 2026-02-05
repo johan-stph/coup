@@ -4,6 +4,7 @@ import registry from '../../openapi/openApiRegistry.js';
 import { AuthRequest } from '../../auth/auth.middleware.js';
 import Game, { GAME_STATUSES } from '../../db/models/Game.model.js';
 import { CREATED, INTERNAL_SERVER_ERROR } from '../../constants/http.js';
+import logger from '../../utils/logger/logger.js';
 
 const router = Router();
 
@@ -66,7 +67,8 @@ router.get('/', async (_req: AuthRequest, res: Response) => {
         createdAt: g.createdAt.toISOString(),
       })),
     });
-  } catch {
+  } catch (error) {
+    logger.error('Failed to fetch games:', error);
     res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to fetch games' });
   }
 });
@@ -124,6 +126,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       res.status(400).json({ error: error.errors });
       return;
     }
+    logger.error('Failed to create game:', error);
     res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to create game' });
   }
 });
