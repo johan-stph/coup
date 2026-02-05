@@ -41,7 +41,8 @@ export default function Home() {
       navigate("/lobby", {
         state: { gameCode: game.gameCode, lobbyName: game.name },
       });
-    } catch {
+    } catch (err) {
+      console.error("Failed to create game:", err);
       setError("Connection failed. Try again.");
     } finally {
       setLoading(false);
