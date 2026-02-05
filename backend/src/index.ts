@@ -9,6 +9,7 @@ import errorHandler from './error/errorHandler.middleware';
 
 import { PORT } from './constants/environmentVariables';
 import logger from './utils/logger/logger';
+import { connectToDatabase } from './db/connection.js';
 import { verifyFirebaseToken } from './auth/auth.middleware';
 import openApiRouter from './openapi/openApiRouter.js';
 import gamesRoutes from './api/secured/games.route.js';
@@ -53,8 +54,7 @@ app.use(errorHandler);
 
 async function startServer(): Promise<void> {
   try {
-    // Connect to MongoDB first
-    //lets skip that
+    await connectToDatabase();
 
     // Then start the Express server
     app.listen(PORT, () => {

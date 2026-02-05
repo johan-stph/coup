@@ -35,3 +35,8 @@ export const FIREBASE_CLIENT_X509_CERT_URL = getEnv(
 );
 export const FIREBASE_UNIVERSE_DOMAIN = getEnv('FIREBASE_UNIVERSE_DOMAIN');
 export const FIREBASE_WEB_API_KEY = getEnv('FIREBASE_WEB_API_KEY', '');
+
+/*
+ * MONGODB ENVIROMENT VARIABLES
+ */
+export const MONGO_URI = getEnv('MONGO_URI');
