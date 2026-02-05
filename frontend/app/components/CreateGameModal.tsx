@@ -29,7 +29,7 @@ export default function CreateGameModal({
   return (
     <div
       className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={loading ? undefined : onClose}
     >
       <div
         className="corner-brackets corner-brackets-bottom w-full max-w-md"
@@ -43,7 +43,8 @@ export default function CreateGameModal({
             </h2>
             <button
               onClick={onClose}
-              className="font-mono text-xs text-text-muted transition-colors hover:text-white hover:cursor-pointer"
+              disabled={loading}
+              className="font-mono text-xs text-text-muted transition-colors hover:text-white hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               [ESC]
             </button>
