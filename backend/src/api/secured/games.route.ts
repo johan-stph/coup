@@ -12,6 +12,7 @@ const GameSchema = registry.register(
   z.object({
     id: z.string(),
     name: z.string(),
+    gameCode: z.string(),
     players: z.array(z.string()),
     status: z.enum(GAME_STATUSES),
     createdAt: z.string(),
@@ -59,6 +60,7 @@ router.get('/', async (_req: AuthRequest, res: Response) => {
       games: games.map((g) => ({
         id: g._id.toString(),
         name: g.name,
+        gameCode: g.gameCode,
         players: g.players,
         status: g.status,
         createdAt: g.createdAt.toISOString(),
@@ -104,15 +106,17 @@ router.post('/', async (req: AuthRequest, res: Response) => {
   try {
     const { name } = CreateGameBody.parse(req.body);
 
-    const game = await Game.create({
+    const game = new Game({
       name,
       status: 'waiting',
       players: [req.user!.uid],
     });
+    await game.save();
 
     res.status(CREATED).json({
       id: game._id.toString(),
       name: game.name,
+      gameCode: game.gameCode,
       players: game.players,
       status: game.status,
       createdAt: game.createdAt.toISOString(),
