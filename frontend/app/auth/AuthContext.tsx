@@ -1,9 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
-  createUserWithEmailAndPassword,
   onAuthStateChanged,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
   signOut,
   type User,
   type UserCredential,
@@ -124,9 +121,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Refresh user data from backend
+  async function refreshUserData() {
+    if (!auth.currentUser) return;
+
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const response = await fetch(`${API_URL}/user/profile`, {
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch user profile");
+      }
+
+      const data = await response.json();
+
+      const combinedUser = createCombinedUser(
+        auth.currentUser,
+        data.profile,
+        !data.exists,
+        null,
+      );
+      setUser(combinedUser);
+    } catch (error: any) {
+      console.error("Error refreshing user data:", error);
+      setAuthError(error.message);
+    }
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        try {
+          const idToken = await firebaseUser.getIdToken();
+          const response = await fetch(`${API_URL}/user/profile`, {
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch user profile");
+          }
+
+          const data = await response.json();
+
+          const combinedUser = createCombinedUser(
+            firebaseUser,
+            data.profile,
+            !data.exists,
+            null,
+          );
+          setUser(combinedUser);
+        } catch (error: any) {
+          console.error("Error fetching user profile:", error);
+          setAuthError(error.message);
+        } finally {
+          setLoading(false);
+        }
       } else {
         setUser(null);
         setAuthError(null);
@@ -143,6 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     authError,
     logout,
     signInWithGoogle,
+    refreshUserData,
     getIdToken,
     clearError,
   };
