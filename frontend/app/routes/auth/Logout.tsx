@@ -1,7 +1,7 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router";
-import { useAuth } from "~/auth/AuthContext";
-import { toast } from "sonner";
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router';
+import { useAuth } from '~/auth/AuthContext';
+import { toast } from 'sonner';
 
 export default function Logout() {
   const { logout } = useAuth();
@@ -11,12 +11,12 @@ export default function Logout() {
     const handleLogout = async () => {
       try {
         await logout();
-        toast.success("Successfully logged out");
-        navigate("/login");
+        toast.success('Successfully logged out');
+        navigate('/login');
       } catch (error: any) {
-        console.error("Logout error:", error);
-        toast.error(error.message || "Failed to log out");
-        navigate("/");
+        console.error('Logout error:', error);
+        toast.error(error.message || 'Failed to log out');
+        navigate('/');
       }
     };
 

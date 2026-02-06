@@ -1,11 +1,11 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   --font-sans:
-    "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
-    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-display: "Orbitron", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Share Tech Mono", ui-monospace, monospace;
+    'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-display: 'Orbitron', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Share Tech Mono', ui-monospace, monospace;
 
   --color-void: #0a0a0f;
   --color-void-light: #12121a;
@@ -21,7 +21,7 @@
 
 /* Scanline overlay */
 .scanlines::after {
-  content: "";
+  content: '';
   position: fixed;
   inset: 0;
   background: repeating-linear-gradient(
@@ -57,7 +57,7 @@
 
 .corner-brackets::before,
 .corner-brackets::after {
-  content: "";
+  content: '';
   position: absolute;
   width: 16px;
   height: 16px;
@@ -84,7 +84,7 @@
 
 .corner-brackets-bottom::before,
 .corner-brackets-bottom::after {
-  content: "";
+  content: '';
   position: absolute;
   width: 16px;
   height: 16px;
