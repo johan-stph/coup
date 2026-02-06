@@ -6,8 +6,7 @@ import Logo from "~/components/Logo";
 import ActionButtons from "~/components/ActionButtons";
 import AvatarCard from "~/components/AvatarCard";
 import CreateGameModal from "~/components/CreateGameModal";
-
-const API_BASE = import.meta.env.VITE_API_BASE;
+import { authFetch } from "~/lib/authFetch";
 
 export function meta(_unused: Route.MetaArgs) {
   return [
@@ -30,7 +29,7 @@ export default function Home() {
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/games`, {
+      const res = await authFetch("/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: lobbyName }),
