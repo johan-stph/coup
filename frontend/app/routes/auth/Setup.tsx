@@ -4,9 +4,10 @@ import { toast } from 'sonner';
 import { useAuth } from '~/auth/AuthContext';
 import React from 'react';
 import { authFetch } from '~/lib/authFetch';
+import Logo from '~/components/Logo';
 
 export default function Setup() {
-  const { refreshUserData, user } = useAuth();
+  const { refreshUserData, user, logout } = useAuth();
   const [userName, setUserName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -44,65 +45,114 @@ export default function Setup() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+      toast.success('Logged out successfully');
+    } catch (error: any) {
+      toast.error('Failed to logout');
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-500">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="mb-4">
-            {user?.photoURL && (
-              <img
-                src={user.photoURL}
-                alt="Profile"
-                className="w-20 h-20 rounded-full mx-auto border-4 border-purple-500"
-              />
-            )}
+    <div className="bg-radial-glow scanlines flex min-h-screen flex-col items-center justify-center px-4 text-white">
+      <div className="flex w-full max-w-md flex-col items-center gap-12">
+        {/* Logo */}
+        <Logo />
+
+        {/* Setup Card */}
+        <div className="corner-brackets corner-brackets-bottom w-full">
+          <div className="border border-neon-red/50 bg-surface p-8">
+            <div className="space-y-8">
+              {/* Header */}
+              <div className="space-y-4 text-center">
+                <div className="font-mono text-[10px] tracking-[0.3em] text-text-muted">
+                  OPERATIVE SETUP
+                </div>
+                <h2 className="font-display text-xl font-bold tracking-wider">
+                  CREATE OPERATIVE ID
+                </h2>
+                {user?.photoURL && (
+                  <div className="flex justify-center pt-2">
+                    <img
+                      src={user.photoURL}
+                      alt="Profile"
+                      className="h-16 w-16 rounded-full border-2 border-neon-red"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Username Input */}
+              <div className="space-y-3">
+                <label
+                  htmlFor="userName"
+                  className="block font-mono text-[10px] tracking-[0.2em] text-text-muted uppercase"
+                >
+                  Operative Designation
+                </label>
+                <input
+                  type="text"
+                  id="userName"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="Enter designation"
+                  minLength={3}
+                  maxLength={50}
+                  required
+                  disabled={isSubmitting}
+                  className="w-full border border-neon-red/30 bg-surface-light px-4 py-2 font-mono text-sm text-white placeholder-text-muted transition-colors focus:border-neon-red focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <p className="font-mono text-[9px] tracking-widest text-text-muted">
+                  3-50 CHARACTERS, VISIBLE TO OPERATIVES
+                </p>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                onClick={handleSubmit}
+                disabled={isSubmitting || userName.length < 3}
+                className="btn-glow w-full border border-neon-red py-3 font-display text-sm font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="h-4 w-4 border-2 border-neon-red border-t-transparent rounded-full animate-spin" />
+                    <span>INITIALIZING...</span>
+                  </div>
+                ) : (
+                  'ACTIVATE OPERATIVE'
+                )}
+              </button>
+
+              {/* Logout Button */}
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isSubmitting}
+                className="w-full border border-text-muted/30 py-2 font-mono text-[10px] font-semibold tracking-widest text-text-muted transition-all hover:border-text-muted hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                LOGOUT
+              </button>
+
+              {/* Status */}
+              <div className="flex items-center justify-center gap-2">
+                <span className="status-pulse inline-block h-2 w-2 rounded-full bg-neon-red" />
+                <span className="font-mono text-[10px] tracking-widest text-text-muted">
+                  AWAITING INITIALIZATION
+                </span>
+              </div>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Welcome to Coup!
-          </h1>
-          <p className="text-gray-600">Let's set up your profile</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label
-              htmlFor="userName"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Choose a username
-            </label>
-            <input
-              type="text"
-              id="userName"
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              placeholder="Enter your username"
-              minLength={3}
-              maxLength={50}
-              required
-              disabled={isSubmitting}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              3-50 characters, this will be visible to other players
-            </p>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting || userName.length < 3}
-            className="w-full bg-purple-600 text-white font-semibold py-3 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? (
-              <div className="flex items-center justify-center gap-2">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Creating profile...</span>
-              </div>
-            ) : (
-              'Continue'
-            )}
-          </button>
-        </form>
+        {/* Footer Info */}
+        <div className="text-center">
+          <p className="font-mono text-[10px] tracking-widest text-text-muted">
+            COMPLETE SETUP TO ACCESS OPERATIONS
+          </p>
+        </div>
       </div>
     </div>
   );
