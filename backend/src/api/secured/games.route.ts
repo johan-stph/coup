@@ -6,7 +6,7 @@ import Game, { GAME_STATUSES } from '../../db/models/Game.model';
 import User from '../../db/models/User.model';
 import { CONFLICT, CREATED, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK } from '../../constants/http';
 import logger from '../../utils/logger/logger';
-import { addClient, removeClient, broadcast } from '../../sse/lobbySSEManager';
+import { addClient, removeClient, closeClient, broadcast } from '../../sse/lobbySSEManager';
 
 const router = Router();
 
@@ -215,6 +215,58 @@ router.post('/join/:gameCode', async (req: AuthRequest, res: Response) => {
   } catch (error) {
     logger.error('Failed to join game:', error);
     res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to join game' });
+  }
+});
+
+// POST /api/games/leave/:gameCode
+registry.registerPath({
+  method: 'post',
+  path: '/api/games/leave/{gameCode}',
+  summary: 'Leave a game',
+  security: [{ BearerAuth: [] }],
+  request: {
+    params: z.object({
+      gameCode: z.string(),
+    }),
+  },
+  responses: {
+    200: { description: 'Left game successfully' },
+    404: { description: 'Game not found' },
+    409: { description: 'You are not in this game' },
+  },
+});
+
+router.post('/leave/:gameCode', async (req: AuthRequest, res: Response) => {
+  try {
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    const game = await Game.findOne({ gameCode });
+
+    if (!game) {
+      res.status(NOT_FOUND).json({ error: 'Game not found' });
+      return;
+    }
+
+    const playerIndex = game.players.findIndex((p) => p.uid === uid);
+    if (playerIndex === -1) {
+      res.status(CONFLICT).json({ error: 'You are not in this game' });
+      return;
+    }
+
+    game.players.splice(playerIndex, 1);
+    await game.save();
+
+    // Close the leaving player's SSE connection
+    closeClient(gameCode as string, uid);
+
+    // Broadcast updated player list to remaining players
+    broadcast(gameCode as string, 'player_left', { players: game.players });
+
+    res.json({ message: 'Left game successfully' });
+  } catch (error) {
+    logger.error('Failed to leave game:', error);
+    res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to leave game' });
   }
 });
 

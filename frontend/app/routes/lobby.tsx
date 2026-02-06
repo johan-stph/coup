@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router';
 import { useAuth } from '~/auth/AuthContext';
+import { authFetch } from '~/lib/authFetch';
 import { useLobbySSE } from '~/hooks/useLobbySSE';
 
 interface GamePlayer {
@@ -35,17 +36,27 @@ export default function Lobby() {
     );
   }
 
-  const { players, connected } = useLobbySSE({
+  const { players, connected, disconnect } = useLobbySSE({
     gameCode: state.gameCode,
     initialPlayers: state.players ?? [],
   });
+
+  async function handleLeaveLobby() {
+    disconnect();
+    try {
+      await authFetch(`/games/leave/${state!.gameCode}`, { method: 'POST' });
+    } catch {
+      // Best-effort — navigate home regardless
+    }
+    navigate('/');
+  }
 
   return (
     <div className="bg-radial-glow scanlines flex min-h-screen flex-col text-white">
       {/* Top bar */}
       <header className="flex items-center justify-between px-6 py-4">
         <button
-          onClick={() => navigate('/')}
+          onClick={handleLeaveLobby}
           className="font-mono text-xs tracking-widest text-text-muted transition-colors hover:text-white hover:cursor-pointer"
         >
           {'< EXIT LOBBY'}

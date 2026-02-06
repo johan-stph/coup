@@ -39,6 +39,21 @@ export function removeClient(gameCode: string, uid: string, res: Response): void
   }
 }
 
+export function closeClient(gameCode: string, uid: string): void {
+  const clients = lobbies.get(gameCode);
+  if (!clients) return;
+
+  const index = clients.findIndex((c) => c.uid === uid);
+  if (index !== -1) {
+    clients[index].res.end();
+    clients.splice(index, 1);
+  }
+
+  if (clients.length === 0) {
+    lobbies.delete(gameCode);
+  }
+}
+
 export function broadcast(gameCode: string, event: string, data: unknown): void {
   const clients = lobbies.get(gameCode);
   if (!clients) return;
