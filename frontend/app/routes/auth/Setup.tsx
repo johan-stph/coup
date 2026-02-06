@@ -52,7 +52,7 @@ export default function Setup() {
       await logout();
       navigate('/login');
       toast.success('Logged out successfully');
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error('Failed to logout');
     }
   };

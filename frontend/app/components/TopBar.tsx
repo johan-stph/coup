@@ -11,7 +11,7 @@ export default function TopBar() {
       await logout();
       navigate('/login');
       toast.success('Logged out successfully');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to logout');
     }
   };
