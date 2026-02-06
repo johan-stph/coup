@@ -3,10 +3,16 @@ import mongoose, { Schema, Document } from 'mongoose';
 export const GAME_STATUSES = ['waiting', 'in_progress', 'finished'] as const;
 export type GameStatus = (typeof GAME_STATUSES)[number];
 
+export interface GamePlayer {
+  uid: string;
+  userName: string;
+}
+
 export interface IGame extends Document {
   name: string;
   gameCode: string;
-  players: string[];
+  players: GamePlayer[];
+  createdBy: string;
   status: GameStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -25,7 +31,17 @@ const gameSchema = new Schema<IGame>(
   {
     name: { type: String, required: true },
     gameCode: { type: String, unique: true },
-    players: { type: [String], default: [] },
+    players: {
+      type: [
+        {
+          uid: { type: String, required: true },
+          userName: { type: String, required: true },
+          _id: false,
+        },
+      ],
+      default: [],
+    },
+    createdBy: { type: String, required: true },
     status: {
       type: String,
       enum: GAME_STATUSES,

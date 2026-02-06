@@ -7,7 +7,7 @@ import {
   signInWithPopup,
 } from 'firebase/auth';
 
-import { API_URL } from '~/config/environment';
+import { authFetch } from '~/lib/authFetch';
 import { auth } from './firebase';
 
 /**
@@ -124,12 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!auth.currentUser) return;
 
     try {
-      const idToken = await auth.currentUser.getIdToken();
-      const response = await fetch(`${API_URL}/user/profile`, {
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
+      const response = await authFetch('/user/profile');
 
       if (!response.ok) {
         throw new Error('Failed to fetch user profile');
@@ -154,12 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          const idToken = await firebaseUser.getIdToken();
-          const response = await fetch(`${API_URL}/user/profile`, {
-            headers: {
-              Authorization: `Bearer ${idToken}`,
-            },
-          });
+          const response = await authFetch('/user/profile');
 
           if (!response.ok) {
             throw new Error('Failed to fetch user profile');

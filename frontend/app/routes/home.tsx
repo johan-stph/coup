@@ -6,8 +6,8 @@ import Logo from '~/components/Logo';
 import ActionButtons from '~/components/ActionButtons';
 import AvatarCard from '~/components/AvatarCard';
 import CreateGameModal from '~/components/CreateGameModal';
-
-const API_BASE = import.meta.env.VITE_API_BASE;
+import JoinGameModal from '~/components/JoinGameModal';
+import { authFetch } from '~/lib/authFetch';
 
 export function meta(_unused: Route.MetaArgs) {
   return [
@@ -21,7 +21,8 @@ export function meta(_unused: Route.MetaArgs) {
 
 export default function Home() {
   const navigate = useNavigate();
-  const [modalOpen, setModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,16 +31,27 @@ export default function Home() {
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/games`, {
+      const res = await authFetch('/games', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: lobbyName }),
       });
 
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Failed to create game.');
+        return;
+      }
+
       const game = await res.json();
 
       navigate('/lobby', {
-        state: { gameCode: game.gameCode, lobbyName: game.name },
+        state: {
+          gameCode: game.gameCode,
+          lobbyName: game.name,
+          players: game.players,
+          createdBy: game.createdBy,
+        },
       });
     } catch (err) {
       console.error('Failed to create game:', err);
@@ -49,23 +61,70 @@ export default function Home() {
     }
   }
 
+  async function handleJoinGame(gameCode: string) {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await authFetch(`/games/join/${gameCode}`, {
+        method: 'POST',
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Failed to join game.');
+        return;
+      }
+
+      const game = await res.json();
+
+      navigate('/lobby', {
+        state: {
+          gameCode: game.gameCode,
+          lobbyName: game.name,
+          players: game.players,
+          createdBy: game.createdBy,
+        },
+      });
+    } catch (err) {
+      console.error('Failed to join game:', err);
+      setError('Connection failed. Try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function closeModals() {
+    setCreateModalOpen(false);
+    setJoinModalOpen(false);
+    setError(null);
+  }
+
   return (
     <div className="bg-radial-glow scanlines flex min-h-screen flex-col text-white">
       <TopBar />
 
       <main className="flex flex-1 flex-col items-center justify-center gap-12 px-4 pb-16">
         <Logo />
-        <ActionButtons onCreateGame={() => setModalOpen(true)} />
+        <ActionButtons
+          onCreateGame={() => setCreateModalOpen(true)}
+          onJoinGame={() => setJoinModalOpen(true)}
+        />
         <AvatarCard />
       </main>
 
       <CreateGameModal
-        open={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setError(null);
-        }}
+        open={createModalOpen}
+        onClose={closeModals}
         onConfirm={handleCreateGame}
+        loading={loading}
+        error={error}
+      />
+
+      <JoinGameModal
+        open={joinModalOpen}
+        onClose={closeModals}
+        onConfirm={handleJoinGame}
         loading={loading}
         error={error}
       />

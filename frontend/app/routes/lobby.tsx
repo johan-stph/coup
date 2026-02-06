@@ -1,13 +1,24 @@
 import { useLocation, useNavigate } from 'react-router';
+import { useAuth } from '~/auth/AuthContext';
+import { authFetch } from '~/lib/authFetch';
+import { useLobbySSE } from '~/hooks/useLobbySSE';
+
+interface GamePlayer {
+  uid: string;
+  userName: string;
+}
 
 interface LobbyState {
   gameCode: string;
   lobbyName: string;
+  players: GamePlayer[];
+  createdBy: string;
 }
 
 export default function Lobby() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const state = location.state as LobbyState | null;
 
   if (!state?.gameCode) {
@@ -26,20 +37,56 @@ export default function Lobby() {
     );
   }
 
+  const { players, connected, gameStarted, disconnect } = useLobbySSE({
+    gameCode: state.gameCode,
+    initialPlayers: state.players ?? [],
+  });
+
+  async function handleStartGame() {
+    try {
+      const res = await authFetch(`/games/start/${state!.gameCode}`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        console.error('Failed to start game:', data.error);
+      }
+    } catch (err) {
+      console.error('Failed to start game:', err);
+    }
+  }
+
+  async function handleLeaveLobby() {
+    disconnect();
+    try {
+      await authFetch(`/games/leave/${state!.gameCode}`, { method: 'POST' });
+    } catch {
+      // Best-effort — navigate home regardless
+    }
+    navigate('/');
+  }
+
   return (
     <div className="bg-radial-glow scanlines flex min-h-screen flex-col text-white">
       {/* Top bar */}
       <header className="flex items-center justify-between px-6 py-4">
         <button
-          onClick={() => navigate('/')}
+          onClick={handleLeaveLobby}
           className="font-mono text-xs tracking-widest text-text-muted transition-colors hover:text-white hover:cursor-pointer"
         >
           {'< EXIT LOBBY'}
         </button>
-        <div className="flex items-center gap-2 font-mono text-xs tracking-widest text-neon-red-dim">
-          <span className="status-pulse inline-block h-2 w-2 rounded-full bg-neon-red" />
-          LOBBY.ACTIVE
-        </div>
+        {connected ? (
+          <div className="flex items-center gap-2 font-mono text-xs tracking-widest text-neon-red-dim">
+            <span className="status-pulse inline-block h-2 w-2 rounded-full bg-neon-red" />
+            LOBBY.ACTIVE
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 font-mono text-xs tracking-widest text-red-400">
+            <span className="inline-block h-2 w-2 rounded-full bg-red-400" />
+            RECONNECTING...
+          </div>
+        )}
       </header>
 
       {/* Main lobby content */}
@@ -72,16 +119,39 @@ export default function Lobby() {
         {/* Players section */}
         <div className="flex flex-col items-center gap-4">
           <span className="font-mono text-[10px] tracking-[0.3em] text-text-muted">
-            OPERATIVES IN LOBBY
+            OPERATIVES IN LOBBY ({players.length})
           </span>
-          <div className="flex items-center gap-2">
-            <span className="inline-block h-2 w-2 rounded-full bg-online-green" />
-            <span className="font-mono text-sm text-white">You</span>
+          <div className="flex flex-col items-center gap-2">
+            {players.map((player) => (
+              <div key={player.uid} className="flex items-center gap-2">
+                <span className="inline-block h-2 w-2 rounded-full bg-online-green" />
+                <span className="font-mono text-sm text-white">
+                  {player.userName}
+                  {state.createdBy === player.uid && (
+                    <span className="ml-2 text-neon-red">(Admin)</span>
+                  )}
+                  {user?.uid === player.uid && (
+                    <span className="ml-1 text-text-muted">(You)</span>
+                  )}
+                </span>
+              </div>
+            ))}
           </div>
-          <p className="font-mono text-[10px] text-text-muted status-pulse">
-            Waiting for operatives to join...
-          </p>
+          {players.length < 2 && (
+            <p className="font-mono text-[10px] text-text-muted status-pulse">
+              Waiting for operatives to join...
+            </p>
+          )}
         </div>
+
+        {user?.uid === state.createdBy && !gameStarted && (
+          <button
+            onClick={handleStartGame}
+            className="corner-brackets bg-neon-red/10 px-10 py-3 font-mono text-sm tracking-widest text-neon-red transition-colors hover:bg-neon-red/20 hover:cursor-pointer"
+          >
+            START OPERATION
+          </button>
+        )}
       </main>
     </div>
   );

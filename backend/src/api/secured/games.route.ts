@@ -3,10 +3,29 @@ import { z } from 'zod';
 import registry from '../../openapi/openApiRegistry';
 import { AuthRequest } from '../../auth/auth.middleware';
 import Game, { GAME_STATUSES } from '../../db/models/Game.model';
-import { CREATED, INTERNAL_SERVER_ERROR } from '../../constants/http';
+import User from '../../db/models/User.model';
+import {
+  CONFLICT,
+  CREATED,
+  FORBIDDEN,
+  INTERNAL_SERVER_ERROR,
+  NOT_FOUND,
+  OK,
+} from '../../constants/http';
 import logger from '../../utils/logger/logger';
+import {
+  addClient,
+  removeClient,
+  closeClient,
+  broadcast,
+} from '../../sse/lobbySSEManager';
 
 const router = Router();
+
+const PlayerSchema = z.object({
+  uid: z.string(),
+  userName: z.string(),
+});
 
 const GameSchema = registry.register(
   'Game',
@@ -14,7 +33,8 @@ const GameSchema = registry.register(
     id: z.string(),
     name: z.string(),
     gameCode: z.string(),
-    players: z.array(z.string()),
+    players: z.array(PlayerSchema),
+    createdBy: z.string(),
     status: z.enum(GAME_STATUSES),
     createdAt: z.string(),
   })
@@ -63,6 +83,7 @@ router.get('/', async (_req: AuthRequest, res: Response) => {
         name: g.name,
         gameCode: g.gameCode,
         players: g.players,
+        createdBy: g.createdBy,
         status: g.status,
         createdAt: g.createdAt.toISOString(),
       })),
@@ -99,17 +120,26 @@ registry.registerPath({
     },
     401: { description: 'No token provided' },
     403: { description: 'Invalid or expired token' },
+    404: { description: 'User profile not found' },
   },
 });
 
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
     const { name } = CreateGameBody.parse(req.body);
+    const uid = req.user!.uid;
+
+    const user = await User.findById(uid);
+    if (!user) {
+      res.status(NOT_FOUND).json({ error: 'User profile not found' });
+      return;
+    }
 
     const game = new Game({
       name,
       status: 'waiting',
-      players: [req.user!.uid],
+      players: [{ uid, userName: user.userName }],
+      createdBy: uid,
     });
     await game.save();
 
@@ -118,6 +148,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       name: game.name,
       gameCode: game.gameCode,
       players: game.players,
+      createdBy: game.createdBy,
       status: game.status,
       createdAt: game.createdAt.toISOString(),
     });
@@ -128,6 +159,239 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     }
     logger.error('Failed to create game:', error);
     res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to create game' });
+  }
+});
+
+// POST /api/games/join/:gameCode
+registry.registerPath({
+  method: 'post',
+  path: '/api/games/join/{gameCode}',
+  summary: 'Join an existing game',
+  security: [{ BearerAuth: [] }],
+  request: {
+    params: z.object({
+      gameCode: z.string(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Joined game successfully',
+      content: {
+        'application/json': {
+          schema: GameSchema,
+        },
+      },
+    },
+    404: { description: 'Game not found / User profile not found' },
+    409: {
+      description: 'Game is not in waiting status / Player already in game',
+    },
+  },
+});
+
+router.post('/join/:gameCode', async (req: AuthRequest, res: Response) => {
+  try {
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    const game = await Game.findOne({ gameCode });
+
+    if (!game) {
+      res.status(NOT_FOUND).json({ error: 'Game not found' });
+      return;
+    }
+
+    if (game.status !== 'waiting') {
+      res.status(CONFLICT).json({ error: 'Game is not in waiting status' });
+      return;
+    }
+
+    if (game.players.some((p) => p.uid === uid)) {
+      res.status(CONFLICT).json({ error: 'You are already in this game' });
+      return;
+    }
+
+    const user = await User.findById(uid);
+    if (!user) {
+      res.status(NOT_FOUND).json({ error: 'User profile not found' });
+      return;
+    }
+
+    game.players.push({ uid, userName: user.userName });
+    await game.save();
+
+    broadcast(gameCode as string, 'player_joined', { players: game.players });
+
+    res.json({
+      id: game._id.toString(),
+      name: game.name,
+      gameCode: game.gameCode,
+      players: game.players,
+      createdBy: game.createdBy,
+      status: game.status,
+      createdAt: game.createdAt.toISOString(),
+    });
+  } catch (error) {
+    logger.error('Failed to join game:', error);
+    res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to join game' });
+  }
+});
+
+// POST /api/games/leave/:gameCode
+registry.registerPath({
+  method: 'post',
+  path: '/api/games/leave/{gameCode}',
+  summary: 'Leave a game',
+  security: [{ BearerAuth: [] }],
+  request: {
+    params: z.object({
+      gameCode: z.string(),
+    }),
+  },
+  responses: {
+    200: { description: 'Left game successfully' },
+    404: { description: 'Game not found' },
+    409: { description: 'You are not in this game' },
+  },
+});
+
+router.post('/leave/:gameCode', async (req: AuthRequest, res: Response) => {
+  try {
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    const game = await Game.findOne({ gameCode });
+
+    if (!game) {
+      res.status(NOT_FOUND).json({ error: 'Game not found' });
+      return;
+    }
+
+    const playerIndex = game.players.findIndex((p) => p.uid === uid);
+    if (playerIndex === -1) {
+      res.status(CONFLICT).json({ error: 'You are not in this game' });
+      return;
+    }
+
+    game.players.splice(playerIndex, 1);
+    await game.save();
+
+    // Close the leaving player's SSE connection
+    closeClient(gameCode as string, uid);
+
+    // Broadcast updated player list to remaining players
+    broadcast(gameCode as string, 'player_left', { players: game.players });
+
+    res.json({ message: 'Left game successfully' });
+  } catch (error) {
+    logger.error('Failed to leave game:', error);
+    res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to leave game' });
+  }
+});
+
+// POST /api/games/start/:gameCode
+registry.registerPath({
+  method: 'post',
+  path: '/api/games/start/{gameCode}',
+  summary: 'Start a game (admin only)',
+  security: [{ BearerAuth: [] }],
+  request: {
+    params: z.object({
+      gameCode: z.string(),
+    }),
+  },
+  responses: {
+    200: { description: 'Game started successfully' },
+    403: { description: 'Only the lobby admin can start the game' },
+    404: { description: 'Game not found' },
+    409: { description: 'Game is not in waiting status' },
+  },
+});
+
+router.post('/start/:gameCode', async (req: AuthRequest, res: Response) => {
+  try {
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    const game = await Game.findOne({ gameCode });
+
+    if (!game) {
+      res.status(NOT_FOUND).json({ error: 'Game not found' });
+      return;
+    }
+
+    if (game.createdBy !== uid) {
+      res
+        .status(FORBIDDEN)
+        .json({ error: 'Only the lobby admin can start the game' });
+      return;
+    }
+
+    if (game.status !== 'waiting') {
+      res.status(CONFLICT).json({ error: 'Game is not in waiting status' });
+      return;
+    }
+
+    game.status = 'in_progress';
+    await game.save();
+
+    broadcast(gameCode as string, 'game_started', { status: 'in_progress' });
+
+    res.json({ message: 'Game started successfully' });
+  } catch (error) {
+    logger.error('Failed to start game:', error);
+    res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to start game' });
+  }
+});
+
+// GET /api/games/:gameCode/events (SSE)
+router.get('/:gameCode/events', async (req: AuthRequest, res: Response) => {
+  try {
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    const game = await Game.findOne({ gameCode });
+
+    if (!game) {
+      res.status(NOT_FOUND).json({ error: 'Game not found' });
+      return;
+    }
+
+    if (!game.players.some((p) => p.uid === uid)) {
+      res
+        .status(FORBIDDEN)
+        .json({ error: 'You are not a player in this game' });
+      return;
+    }
+
+    // Set SSE headers
+    res.writeHead(OK, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+
+    // Send initial state
+    const initialMessage = `event: player_joined\ndata: ${JSON.stringify({ players: game.players })}\n\n`;
+    res.write(initialMessage);
+
+    addClient(gameCode as string, uid, res);
+
+    // Keepalive every 30s
+    const keepalive = setInterval(() => {
+      res.write(': keepalive\n\n');
+    }, 30_000);
+
+    req.on('close', () => {
+      clearInterval(keepalive);
+      removeClient(gameCode as string, uid, res);
+    });
+  } catch (error) {
+    logger.error('Failed to setup SSE:', error);
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Failed to setup event stream' });
   }
 });
 
