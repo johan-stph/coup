@@ -3,11 +3,9 @@ import {
   onAuthStateChanged,
   signOut,
   type User,
-  type UserCredential,
   GoogleAuthProvider,
   signInWithPopup,
 } from "firebase/auth";
-import { toast } from "sonner";
 
 import { API_URL } from "~/config/environment";
 import { auth } from "./firebase";
