@@ -88,7 +88,9 @@ router.get('/profile', async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error fetching user profile:', error);
-    return res.status(INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' });
+    return res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Internal server error' });
   }
 });
 
@@ -131,7 +133,9 @@ router.post('/profile', async (req: AuthRequest, res: Response) => {
     const { userName } = req.body;
 
     if (!userName || userName.length < 3 || userName.length > 50) {
-      return res.status(400).json({ error: 'Username must be between 3 and 50 characters' });
+      return res
+        .status(400)
+        .json({ error: 'Username must be between 3 and 50 characters' });
     }
 
     // Check if user already exists
@@ -159,7 +163,9 @@ router.post('/profile', async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error creating user profile:', error);
-    return res.status(INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' });
+    return res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Internal server error' });
   }
 });
 
