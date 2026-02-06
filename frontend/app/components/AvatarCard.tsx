@@ -1,4 +1,4 @@
-export default function AvatarCard() {
+export default function AvatarCard({ userName }: { userName: string }) {
   return (
     <div className="flex flex-col items-center gap-3">
       {/* Avatar frame with corner brackets */}
@@ -29,7 +29,7 @@ export default function AvatarCard() {
           OPERATIVE
         </span>
         <span className="font-display text-lg font-bold tracking-wider text-white">
-          SHADOW_01
+          {userName}
         </span>
         <div className="flex items-center gap-1.5">
           <span className="status-pulse inline-block h-2 w-2 rounded-full bg-online-green" />

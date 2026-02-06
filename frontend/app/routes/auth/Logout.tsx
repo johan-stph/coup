@@ -24,7 +24,7 @@ export default function Logout() {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-500">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-purple-600 to-blue-500">
       <div className="text-white text-xl">Logging out...</div>
     </div>
   );
