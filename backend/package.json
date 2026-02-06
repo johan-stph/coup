@@ -14,11 +14,11 @@
   "description": "",
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.3.2",
-    "@types/mongoose": "^5.11.96",
+    "@types/mongoose": "^5.11.97",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "firebase-admin": "^13.6.0",
-    "mongoose": "^8.14.1",
+    "mongoose": "^9.1.6",
     "swagger-ui-express": "^5.0.1",
     "ts-node": "^10.9.2",
     "winston": "^3.17.0",
