@@ -1,3 +1,4 @@
+/* global RequestInit -- this is needed as dom library is not found */
 import { auth } from '~/auth/firebase';
 import { API_URL } from '~/config/environment';
 
