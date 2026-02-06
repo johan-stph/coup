@@ -11,6 +11,7 @@ export default [
   layout('routes/layout.tsx', [
     index('routes/home.tsx'),
     route('lobby', 'routes/lobby.tsx'),
+    route('game', 'routes/game.tsx'),
     route('logout', 'routes/auth/Logout.tsx'),
   ]),
 ] satisfies RouteConfig;

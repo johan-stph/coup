@@ -5,6 +5,7 @@ import { AuthRequest } from '../../auth/auth.middleware';
 import Game, { GAME_STATUSES } from '../../db/models/Game.model';
 import User from '../../db/models/User.model';
 import {
+  BAD_REQUEST,
   CONFLICT,
   CREATED,
   FORBIDDEN,
@@ -12,6 +13,7 @@ import {
   NOT_FOUND,
   OK,
 } from '../../constants/http';
+import { GAME_ACTIONS } from '../../constants/gameActions';
 import logger from '../../utils/logger/logger';
 import {
   addClient,
@@ -341,6 +343,56 @@ router.post('/start/:gameCode', async (req: AuthRequest, res: Response) => {
   } catch (error) {
     logger.error('Failed to start game:', error);
     res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to start game' });
+  }
+});
+
+// POST /api/games/action/:gameCode
+const ActionBody = z.object({ action: z.enum(GAME_ACTIONS) });
+
+router.post('/action/:gameCode', async (req: AuthRequest, res: Response) => {
+  try {
+    const parsed = ActionBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(BAD_REQUEST).json({ error: parsed.error.issues });
+      return;
+    }
+
+    const { action } = parsed.data;
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    const game = await Game.findOne({ gameCode });
+
+    if (!game) {
+      res.status(NOT_FOUND).json({ error: 'Game not found' });
+      return;
+    }
+
+    if (game.status !== 'in_progress') {
+      res.status(CONFLICT).json({ error: 'Game is not in progress' });
+      return;
+    }
+
+    const player = game.players.find((p) => p.uid === uid);
+    if (!player) {
+      res
+        .status(FORBIDDEN)
+        .json({ error: 'You are not a player in this game' });
+      return;
+    }
+
+    broadcast(gameCode as string, 'action_performed', {
+      uid,
+      userName: player.userName,
+      action,
+    });
+
+    res.json({ message: 'Action performed' });
+  } catch (error) {
+    logger.error('Failed to perform action:', error);
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Failed to perform action' });
   }
 });
 
