@@ -12,7 +12,9 @@ export default function Setup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit: React.SubmitEventHandler = async (e) => {
+  const handleSubmit: React.MouseEventHandler<HTMLButtonElement> = async (
+    e
+  ) => {
     e.preventDefault();
 
     if (userName.length < 3) {
