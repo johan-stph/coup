@@ -3,7 +3,7 @@ import { z } from 'zod';
 import registry from '../../openapi/openApiRegistry';
 import { AuthRequest } from '../../auth/auth.middleware';
 import Game, { GAME_STATUSES } from '../../db/models/Game.model';
-import { CREATED, INTERNAL_SERVER_ERROR } from '../../constants/http';
+import { CONFLICT, CREATED, INTERNAL_SERVER_ERROR, NOT_FOUND } from '../../constants/http';
 import logger from '../../utils/logger/logger';
 
 const router = Router();
@@ -128,6 +128,70 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     }
     logger.error('Failed to create game:', error);
     res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to create game' });
+  }
+});
+
+// POST /api/games/join/:gameCode
+registry.registerPath({
+  method: 'post',
+  path: '/api/games/join/{gameCode}',
+  summary: 'Join an existing game',
+  security: [{ BearerAuth: [] }],
+  request: {
+    params: z.object({
+      gameCode: z.string(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Joined game successfully',
+      content: {
+        'application/json': {
+          schema: GameSchema,
+        },
+      },
+    },
+    404: { description: 'Game not found' },
+    409: { description: 'Game is not in waiting status / Player already in game' },
+  },
+});
+
+router.post('/join/:gameCode', async (req: AuthRequest, res: Response) => {
+  try {
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    const game = await Game.findOne({ gameCode });
+
+    if (!game) {
+      res.status(NOT_FOUND).json({ error: 'Game not found' });
+      return;
+    }
+
+    if (game.status !== 'waiting') {
+      res.status(CONFLICT).json({ error: 'Game is not in waiting status' });
+      return;
+    }
+
+    if (game.players.includes(uid)) {
+      res.status(CONFLICT).json({ error: 'You are already in this game' });
+      return;
+    }
+
+    game.players.push(uid);
+    await game.save();
+
+    res.json({
+      id: game._id.toString(),
+      name: game.name,
+      gameCode: game.gameCode,
+      players: game.players,
+      status: game.status,
+      createdAt: game.createdAt.toISOString(),
+    });
+  } catch (error) {
+    logger.error('Failed to join game:', error);
+    res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to join game' });
   }
 });
 

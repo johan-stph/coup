@@ -1,26 +1,28 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
-import type { Route } from './+types/home';
-import TopBar from '~/components/TopBar';
-import Logo from '~/components/Logo';
-import ActionButtons from '~/components/ActionButtons';
-import AvatarCard from '~/components/AvatarCard';
-import CreateGameModal from '~/components/CreateGameModal';
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import type { Route } from "./+types/home";
+import TopBar from "~/components/TopBar";
+import Logo from "~/components/Logo";
+import ActionButtons from "~/components/ActionButtons";
+import AvatarCard from "~/components/AvatarCard";
+import CreateGameModal from "~/components/CreateGameModal";
+import JoinGameModal from "~/components/JoinGameModal";
 import { authFetch } from "~/lib/authFetch";
 
 export function meta(_unused: Route.MetaArgs) {
   return [
-    { title: 'Coopia — Resistance Protocol' },
+    { title: "Coopia — Resistance Protocol" },
     {
-      name: 'description',
-      content: 'Online multiplayer deception game',
+      name: "description",
+      content: "Online multiplayer deception game",
     },
   ];
 }
 
 export default function Home() {
   const navigate = useNavigate();
-  const [modalOpen, setModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,22 +32,56 @@ export default function Home() {
 
     try {
       const res = await authFetch("/games", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: lobbyName }),
       });
 
       const game = await res.json();
 
-      navigate('/lobby', {
+      navigate("/lobby", {
         state: { gameCode: game.gameCode, lobbyName: game.name },
       });
     } catch (err) {
-      console.error('Failed to create game:', err);
-      setError('Connection failed. Try again.');
+      console.error("Failed to create game:", err);
+      setError("Connection failed. Try again.");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleJoinGame(gameCode: string) {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await authFetch(`/games/join/${gameCode}`, {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Failed to join game.");
+        return;
+      }
+
+      const game = await res.json();
+
+      navigate("/lobby", {
+        state: { gameCode: game.gameCode, lobbyName: game.name },
+      });
+    } catch (err) {
+      console.error("Failed to join game:", err);
+      setError("Connection failed. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function closeModals() {
+    setCreateModalOpen(false);
+    setJoinModalOpen(false);
+    setError(null);
   }
 
   return (
@@ -54,17 +90,25 @@ export default function Home() {
 
       <main className="flex flex-1 flex-col items-center justify-center gap-12 px-4 pb-16">
         <Logo />
-        <ActionButtons onCreateGame={() => setModalOpen(true)} />
+        <ActionButtons
+          onCreateGame={() => setCreateModalOpen(true)}
+          onJoinGame={() => setJoinModalOpen(true)}
+        />
         <AvatarCard />
       </main>
 
       <CreateGameModal
-        open={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setError(null);
-        }}
+        open={createModalOpen}
+        onClose={closeModals}
         onConfirm={handleCreateGame}
+        loading={loading}
+        error={error}
+      />
+
+      <JoinGameModal
+        open={joinModalOpen}
+        onClose={closeModals}
+        onConfirm={handleJoinGame}
         loading={loading}
         error={error}
       />

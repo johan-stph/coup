@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useAuth } from "~/auth/AuthContext";
-import { API_URL } from "~/config/environment";
 import React from "react";
 import { authFetch } from '~/lib/authFetch';
 
@@ -21,7 +20,7 @@ export default function Setup() {
     }
     setIsSubmitting(true);
     try {
-      const response = await authFetch(`${API_URL}/user/profile`, {
+      const response = await authFetch(`/user/profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
