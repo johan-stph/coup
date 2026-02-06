@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { MONGO_URI } from '../constants/environmentVariables.js';
-import logger from '../utils/logger/logger.js';
+import { MONGO_URI } from '../constants/environmentVariables';
+import logger from '../utils/logger/logger';
 
 export async function connectToDatabase(): Promise<void> {
   try {

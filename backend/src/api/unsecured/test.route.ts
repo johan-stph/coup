@@ -1,11 +1,11 @@
 import { Router, Request, Response } from 'express';
 import admin from 'firebase-admin';
 import { z } from 'zod';
-import registry from '../../openapi/openApiRegistry.js';
+import registry from '../../openapi/openApiRegistry';
 import {
   NODE_ENV,
   FIREBASE_WEB_API_KEY,
-} from '../../constants/environmentVariables.js';
+} from '../../constants/environmentVariables';
 
 const router = Router();
 

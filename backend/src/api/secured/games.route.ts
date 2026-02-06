@@ -1,10 +1,10 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
-import registry from '../../openapi/openApiRegistry.js';
-import { AuthRequest } from '../../auth/auth.middleware.js';
-import Game, { GAME_STATUSES } from '../../db/models/Game.model.js';
-import { CREATED, INTERNAL_SERVER_ERROR } from '../../constants/http.js';
-import logger from '../../utils/logger/logger.js';
+import registry from '../../openapi/openApiRegistry';
+import { AuthRequest } from '../../auth/auth.middleware';
+import Game, { GAME_STATUSES } from '../../db/models/Game.model';
+import { CREATED, INTERNAL_SERVER_ERROR } from '../../constants/http';
+import logger from '../../utils/logger/logger';
 
 const router = Router();
 
