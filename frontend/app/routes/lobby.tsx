@@ -44,7 +44,9 @@ export default function Lobby() {
 
   async function handleStartGame() {
     try {
-      const res = await authFetch(`/games/start/${state!.gameCode}`, { method: 'POST' });
+      const res = await authFetch(`/games/start/${state!.gameCode}`, {
+        method: 'POST',
+      });
       if (!res.ok) {
         const data = await res.json();
         console.error('Failed to start game:', data.error);

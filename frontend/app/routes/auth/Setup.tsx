@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
-import { toast } from "sonner";
-import { useAuth } from "~/auth/AuthContext";
-import React from "react";
+import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import { toast } from 'sonner';
+import { useAuth } from '~/auth/AuthContext';
+import React from 'react';
 import { authFetch } from '~/lib/authFetch';
 
 export default function Setup() {

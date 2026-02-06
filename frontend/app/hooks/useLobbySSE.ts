@@ -19,7 +19,10 @@ interface UseLobbySSEResult {
   disconnect: () => void;
 }
 
-export function useLobbySSE({ gameCode, initialPlayers }: UseLobbySSEOptions): UseLobbySSEResult {
+export function useLobbySSE({
+  gameCode,
+  initialPlayers,
+}: UseLobbySSEOptions): UseLobbySSEResult {
   const [players, setPlayers] = useState<GamePlayer[]>(initialPlayers);
   const [connected, setConnected] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import GameModal from "./GameModal";
+import { useState } from 'react';
+import GameModal from './GameModal';
 
 interface JoinGameModalProps {
   open: boolean;
@@ -16,7 +16,7 @@ export default function JoinGameModal({
   loading = false,
   error = null,
 }: JoinGameModalProps) {
-  const [gameCode, setGameCode] = useState("");
+  const [gameCode, setGameCode] = useState('');
 
   return (
     <GameModal

@@ -1,5 +1,5 @@
-import { auth } from "~/auth/firebase";
-import { API_URL } from "~/config/environment";
+import { auth } from '~/auth/firebase';
+import { API_URL } from '~/config/environment';
 
 /**
  * Fetch wrapper that automatically attaches the Firebase auth token
@@ -10,13 +10,13 @@ import { API_URL } from "~/config/environment";
  */
 export async function authFetch(
   path: string,
-  options: RequestInit = {},
+  options: RequestInit = {}
 ): Promise<Response> {
   const headers = new Headers(options.headers);
 
   if (auth.currentUser) {
     const token = await auth.currentUser.getIdToken();
-    headers.set("Authorization", `Bearer ${token}`);
+    headers.set('Authorization', `Bearer ${token}`);
   }
 
   return fetch(`${API_URL}${path}`, {

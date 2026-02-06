@@ -23,7 +23,11 @@ export function addClient(gameCode: string, uid: string, res: Response): void {
   clients.push({ uid, res });
 }
 
-export function removeClient(gameCode: string, uid: string, res: Response): void {
+export function removeClient(
+  gameCode: string,
+  uid: string,
+  res: Response
+): void {
   const clients = lobbies.get(gameCode);
   if (!clients) return;
 
@@ -54,7 +58,11 @@ export function closeClient(gameCode: string, uid: string): void {
   }
 }
 
-export function broadcast(gameCode: string, event: string, data: unknown): void {
+export function broadcast(
+  gameCode: string,
+  event: string,
+  data: unknown
+): void {
   const clients = lobbies.get(gameCode);
   if (!clients) return;
 

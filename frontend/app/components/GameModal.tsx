@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode } from 'react';
 
 interface GameModalProps {
   open: boolean;
@@ -18,8 +18,8 @@ export default function GameModal({
   onClose,
   onSubmit,
   title,
-  confirmLabel = "CONFIRM",
-  loadingLabel = "LOADING...",
+  confirmLabel = 'CONFIRM',
+  loadingLabel = 'LOADING...',
   loading = false,
   error = null,
   disabled = false,

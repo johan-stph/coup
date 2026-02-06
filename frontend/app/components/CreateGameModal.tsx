@@ -1,5 +1,5 @@
-import { useState } from "react";
-import GameModal from "./GameModal";
+import { useState } from 'react';
+import GameModal from './GameModal';
 
 interface CreateGameModalProps {
   open: boolean;
@@ -16,7 +16,7 @@ export default function CreateGameModal({
   loading = false,
   error = null,
 }: CreateGameModalProps) {
-  const [lobbyName, setLobbyName] = useState("");
+  const [lobbyName, setLobbyName] = useState('');
 
   return (
     <GameModal

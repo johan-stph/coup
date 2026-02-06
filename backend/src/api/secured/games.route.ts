@@ -4,9 +4,21 @@ import registry from '../../openapi/openApiRegistry';
 import { AuthRequest } from '../../auth/auth.middleware';
 import Game, { GAME_STATUSES } from '../../db/models/Game.model';
 import User from '../../db/models/User.model';
-import { CONFLICT, CREATED, FORBIDDEN, INTERNAL_SERVER_ERROR, NOT_FOUND, OK } from '../../constants/http';
+import {
+  CONFLICT,
+  CREATED,
+  FORBIDDEN,
+  INTERNAL_SERVER_ERROR,
+  NOT_FOUND,
+  OK,
+} from '../../constants/http';
 import logger from '../../utils/logger/logger';
-import { addClient, removeClient, closeClient, broadcast } from '../../sse/lobbySSEManager';
+import {
+  addClient,
+  removeClient,
+  closeClient,
+  broadcast,
+} from '../../sse/lobbySSEManager';
 
 const router = Router();
 
@@ -171,7 +183,9 @@ registry.registerPath({
       },
     },
     404: { description: 'Game not found / User profile not found' },
-    409: { description: 'Game is not in waiting status / Player already in game' },
+    409: {
+      description: 'Game is not in waiting status / Player already in game',
+    },
   },
 });
 
@@ -307,7 +321,9 @@ router.post('/start/:gameCode', async (req: AuthRequest, res: Response) => {
     }
 
     if (game.createdBy !== uid) {
-      res.status(FORBIDDEN).json({ error: 'Only the lobby admin can start the game' });
+      res
+        .status(FORBIDDEN)
+        .json({ error: 'Only the lobby admin can start the game' });
       return;
     }
 
@@ -342,7 +358,9 @@ router.get('/:gameCode/events', async (req: AuthRequest, res: Response) => {
     }
 
     if (!game.players.some((p) => p.uid === uid)) {
-      res.status(FORBIDDEN).json({ error: 'You are not a player in this game' });
+      res
+        .status(FORBIDDEN)
+        .json({ error: 'You are not a player in this game' });
       return;
     }
 
@@ -350,7 +368,7 @@ router.get('/:gameCode/events', async (req: AuthRequest, res: Response) => {
     res.writeHead(OK, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
       'X-Accel-Buffering': 'no',
     });
 
@@ -371,7 +389,9 @@ router.get('/:gameCode/events', async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Failed to setup SSE:', error);
-    res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to setup event stream' });
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Failed to setup event stream' });
   }
 });
 

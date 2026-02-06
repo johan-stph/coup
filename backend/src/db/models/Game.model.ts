@@ -32,7 +32,13 @@ const gameSchema = new Schema<IGame>(
     name: { type: String, required: true },
     gameCode: { type: String, unique: true },
     players: {
-      type: [{ uid: { type: String, required: true }, userName: { type: String, required: true }, _id: false }],
+      type: [
+        {
+          uid: { type: String, required: true },
+          userName: { type: String, required: true },
+          _id: false,
+        },
+      ],
       default: [],
     },
     createdBy: { type: String, required: true },

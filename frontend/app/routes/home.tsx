@@ -1,20 +1,20 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
-import type { Route } from "./+types/home";
-import TopBar from "~/components/TopBar";
-import Logo from "~/components/Logo";
-import ActionButtons from "~/components/ActionButtons";
-import AvatarCard from "~/components/AvatarCard";
-import CreateGameModal from "~/components/CreateGameModal";
-import JoinGameModal from "~/components/JoinGameModal";
-import { authFetch } from "~/lib/authFetch";
+import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import type { Route } from './+types/home';
+import TopBar from '~/components/TopBar';
+import Logo from '~/components/Logo';
+import ActionButtons from '~/components/ActionButtons';
+import AvatarCard from '~/components/AvatarCard';
+import CreateGameModal from '~/components/CreateGameModal';
+import JoinGameModal from '~/components/JoinGameModal';
+import { authFetch } from '~/lib/authFetch';
 
 export function meta(_unused: Route.MetaArgs) {
   return [
-    { title: "Coopia — Resistance Protocol" },
+    { title: 'Coopia — Resistance Protocol' },
     {
-      name: "description",
-      content: "Online multiplayer deception game",
+      name: 'description',
+      content: 'Online multiplayer deception game',
     },
   ];
 }
@@ -31,26 +31,31 @@ export default function Home() {
     setError(null);
 
     try {
-      const res = await authFetch("/games", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await authFetch('/games', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: lobbyName }),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "Failed to create game.");
+        setError(data.error || 'Failed to create game.');
         return;
       }
 
       const game = await res.json();
 
-      navigate("/lobby", {
-        state: { gameCode: game.gameCode, lobbyName: game.name, players: game.players, createdBy: game.createdBy },
+      navigate('/lobby', {
+        state: {
+          gameCode: game.gameCode,
+          lobbyName: game.name,
+          players: game.players,
+          createdBy: game.createdBy,
+        },
       });
     } catch (err) {
-      console.error("Failed to create game:", err);
-      setError("Connection failed. Try again.");
+      console.error('Failed to create game:', err);
+      setError('Connection failed. Try again.');
     } finally {
       setLoading(false);
     }
@@ -62,23 +67,28 @@ export default function Home() {
 
     try {
       const res = await authFetch(`/games/join/${gameCode}`, {
-        method: "POST",
+        method: 'POST',
       });
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "Failed to join game.");
+        setError(data.error || 'Failed to join game.');
         return;
       }
 
       const game = await res.json();
 
-      navigate("/lobby", {
-        state: { gameCode: game.gameCode, lobbyName: game.name, players: game.players, createdBy: game.createdBy },
+      navigate('/lobby', {
+        state: {
+          gameCode: game.gameCode,
+          lobbyName: game.name,
+          players: game.players,
+          createdBy: game.createdBy,
+        },
       });
     } catch (err) {
-      console.error("Failed to join game:", err);
-      setError("Connection failed. Try again.");
+      console.error('Failed to join game:', err);
+      setError('Connection failed. Try again.');
     } finally {
       setLoading(false);
     }

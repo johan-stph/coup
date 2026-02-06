@@ -5,10 +5,10 @@ import {
   type User,
   GoogleAuthProvider,
   signInWithPopup,
-} from "firebase/auth";
+} from 'firebase/auth';
 
-import { authFetch } from "~/lib/authFetch";
-import { auth } from "./firebase";
+import { authFetch } from '~/lib/authFetch';
+import { auth } from './firebase';
 
 /**
  * These are all the primary information that are stored in the mongod-db and are easy accesible
@@ -124,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!auth.currentUser) return;
 
     try {
-      const response = await authFetch("/user/profile");
+      const response = await authFetch('/user/profile');
 
       if (!response.ok) {
         throw new Error('Failed to fetch user profile');
@@ -149,7 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          const response = await authFetch("/user/profile");
+          const response = await authFetch('/user/profile');
 
           if (!response.ok) {
             throw new Error('Failed to fetch user profile');
