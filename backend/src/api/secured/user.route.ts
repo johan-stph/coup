@@ -3,7 +3,7 @@ import { z } from 'zod';
 import registry from '../../openapi/openApiRegistry';
 import { AuthRequest } from '../../auth/auth.middleware';
 import User from '../../db/models/User.model';
-import { CREATED, OK, NOT_FOUND, INTERNAL_SERVER_ERROR } from '../../constants/http';
+import { CREATED, INTERNAL_SERVER_ERROR } from '../../constants/http';
 import logger from '../../utils/logger/logger';
 
 const router = Router();
