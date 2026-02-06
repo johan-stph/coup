@@ -1,13 +1,22 @@
 import { useLocation, useNavigate } from 'react-router';
+import { useAuth } from '~/auth/AuthContext';
+import { useLobbySSE } from '~/hooks/useLobbySSE';
+
+interface GamePlayer {
+  uid: string;
+  userName: string;
+}
 
 interface LobbyState {
   gameCode: string;
   lobbyName: string;
+  players: GamePlayer[];
 }
 
 export default function Lobby() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const state = location.state as LobbyState | null;
 
   if (!state?.gameCode) {
@@ -26,6 +35,11 @@ export default function Lobby() {
     );
   }
 
+  const { players, connected } = useLobbySSE({
+    gameCode: state.gameCode,
+    initialPlayers: state.players ?? [],
+  });
+
   return (
     <div className="bg-radial-glow scanlines flex min-h-screen flex-col text-white">
       {/* Top bar */}
@@ -36,10 +50,17 @@ export default function Lobby() {
         >
           {'< EXIT LOBBY'}
         </button>
-        <div className="flex items-center gap-2 font-mono text-xs tracking-widest text-neon-red-dim">
-          <span className="status-pulse inline-block h-2 w-2 rounded-full bg-neon-red" />
-          LOBBY.ACTIVE
-        </div>
+        {connected ? (
+          <div className="flex items-center gap-2 font-mono text-xs tracking-widest text-neon-red-dim">
+            <span className="status-pulse inline-block h-2 w-2 rounded-full bg-neon-red" />
+            LOBBY.ACTIVE
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 font-mono text-xs tracking-widest text-red-400">
+            <span className="inline-block h-2 w-2 rounded-full bg-red-400" />
+            RECONNECTING...
+          </div>
+        )}
       </header>
 
       {/* Main lobby content */}
@@ -72,15 +93,26 @@ export default function Lobby() {
         {/* Players section */}
         <div className="flex flex-col items-center gap-4">
           <span className="font-mono text-[10px] tracking-[0.3em] text-text-muted">
-            OPERATIVES IN LOBBY
+            OPERATIVES IN LOBBY ({players.length})
           </span>
-          <div className="flex items-center gap-2">
-            <span className="inline-block h-2 w-2 rounded-full bg-online-green" />
-            <span className="font-mono text-sm text-white">You</span>
+          <div className="flex flex-col items-center gap-2">
+            {players.map((player) => (
+              <div key={player.uid} className="flex items-center gap-2">
+                <span className="inline-block h-2 w-2 rounded-full bg-online-green" />
+                <span className="font-mono text-sm text-white">
+                  {player.userName}
+                  {user?.uid === player.uid && (
+                    <span className="ml-2 text-text-muted">(You)</span>
+                  )}
+                </span>
+              </div>
+            ))}
           </div>
-          <p className="font-mono text-[10px] text-text-muted status-pulse">
-            Waiting for operatives to join...
-          </p>
+          {players.length < 2 && (
+            <p className="font-mono text-[10px] text-text-muted status-pulse">
+              Waiting for operatives to join...
+            </p>
+          )}
         </div>
       </main>
     </div>

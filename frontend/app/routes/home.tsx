@@ -37,10 +37,16 @@ export default function Home() {
         body: JSON.stringify({ name: lobbyName }),
       });
 
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Failed to create game.");
+        return;
+      }
+
       const game = await res.json();
 
       navigate("/lobby", {
-        state: { gameCode: game.gameCode, lobbyName: game.name },
+        state: { gameCode: game.gameCode, lobbyName: game.name, players: game.players },
       });
     } catch (err) {
       console.error("Failed to create game:", err);
@@ -68,7 +74,7 @@ export default function Home() {
       const game = await res.json();
 
       navigate("/lobby", {
-        state: { gameCode: game.gameCode, lobbyName: game.name },
+        state: { gameCode: game.gameCode, lobbyName: game.name, players: game.players },
       });
     } catch (err) {
       console.error("Failed to join game:", err);
