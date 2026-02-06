@@ -10,14 +10,13 @@ export default function Setup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit: React.SubmitEventHandler = async (e) => {
     e.preventDefault();
 
     if (userName.length < 3) {
       toast.error("Username must be at least 3 characters");
       return;
     }
-
     setIsSubmitting(true);
     try {
       const idToken = await getIdToken();
