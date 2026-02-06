@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
-import { toast } from "sonner";
-import { useAuth } from "~/auth/AuthContext";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { toast } from 'sonner';
+import { useAuth } from '~/auth/AuthContext';
 
 export default function Login() {
   const { user, loading, signInWithGoogle, authError, clearError } = useAuth();
@@ -12,9 +12,9 @@ export default function Login() {
   useEffect(() => {
     if (!loading && user) {
       if (user.isFirstTimeUser) {
-        navigate("/auth/setup");
+        navigate('/auth/setup');
       } else {
-        navigate("/");
+        navigate('/');
       }
     }
   }, [user, loading, navigate]);
@@ -31,11 +31,11 @@ export default function Login() {
     setIsSigningIn(true);
     try {
       await signInWithGoogle();
-      toast.success("Successfully signed in!");
+      toast.success('Successfully signed in!');
       // Navigation will happen via the useEffect above
     } catch (error: any) {
-      console.error("Sign in error:", error);
-      toast.error(error.message || "Failed to sign in");
+      console.error('Sign in error:', error);
+      toast.error(error.message || 'Failed to sign in');
     } finally {
       setIsSigningIn(false);
     }
@@ -85,7 +85,7 @@ export default function Login() {
                 />
               </svg>
             )}
-            <span>{isSigningIn ? "Signing in..." : "Sign in with Google"}</span>
+            <span>{isSigningIn ? 'Signing in...' : 'Sign in with Google'}</span>
           </button>
         </div>
 

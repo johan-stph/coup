@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react';
 
 interface CreateGameModalProps {
   open: boolean;
@@ -15,7 +15,7 @@ export default function CreateGameModal({
   loading = false,
   error = null,
 }: CreateGameModalProps) {
-  const [lobbyName, setLobbyName] = useState("");
+  const [lobbyName, setLobbyName] = useState('');
 
   if (!open) return null;
 
@@ -83,7 +83,7 @@ export default function CreateGameModal({
                 disabled={!lobbyName.trim() || loading}
                 className="btn-glow flex-1 border border-neon-red py-3 text-center font-display text-xs font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 disabled:opacity-30 disabled:cursor-not-allowed hover:cursor-pointer"
               >
-                {loading ? "INITIALIZING..." : "CONFIRM"}
+                {loading ? 'INITIALIZING...' : 'CONFIRM'}
               </button>
             </div>
           </form>

@@ -1,17 +1,17 @@
-import js from "@eslint/js";
-import tseslint from "@typescript-eslint/eslint-plugin";
-import tsparser from "@typescript-eslint/parser";
-import globals from "globals";
+import js from '@eslint/js';
+import tseslint from '@typescript-eslint/eslint-plugin';
+import tsparser from '@typescript-eslint/parser';
+import globals from 'globals';
 
 export default [
-  { ignores: ["dist", "build", "node_modules", ".react-router"] },
+  { ignores: ['dist', 'build', 'node_modules', '.react-router'] },
   {
-    files: ["**/*.{js,jsx,ts,tsx}"],
+    files: ['**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
         ecmaVersion: 2022,
-        sourceType: "module",
+        sourceType: 'module',
         ecmaFeatures: {
           jsx: true,
         },
@@ -22,19 +22,19 @@ export default [
       },
     },
     plugins: {
-      "@typescript-eslint": tseslint,
+      '@typescript-eslint': tseslint,
     },
     rules: {
       ...js.configs.recommended.rules,
-      "@typescript-eslint/no-unused-vars": [
-        "error",
+      '@typescript-eslint/no-unused-vars': [
+        'error',
         {
-          argsIgnorePattern: "^_",
-          varsIgnorePattern: "^_",
-          caughtErrorsIgnorePattern: "^_",
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
         },
       ],
-      "no-unused-vars": "off",
+      'no-unused-vars': 'off',
     },
   },
 ];
