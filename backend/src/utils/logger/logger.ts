@@ -1,5 +1,12 @@
 import winston from 'winston';
-import { NODE_ENV } from '../../constants/environmentVariables';
+import path from 'path';
+import fs from 'fs';
+
+// Ensure logs directory exists
+const logsDir = path.join(process.cwd(), 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
 
 // Define log levels
 const levels = {
@@ -31,23 +38,36 @@ const format = winston.format.combine(
   )
 );
 
+// File format without colors
+const fileFormat = winston.format.combine(
+  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
+  winston.format.printf(
+    (info) => `${info.timestamp} ${info.level}: ${info.message}`
+  )
+);
+
 // Define which transports the logger must use to print out messages
 const transports = [
   // Console transport
-  new winston.transports.Console(),
-  // File transports (uncomment when ready to use)
-  // new winston.transports.File({
-  //   filename: 'logs/error.log',
-  //   level: 'error',
-  // }),
-  // new winston.transports.File({ filename: 'logs/all.log' }),
+  new winston.transports.Console({
+    format: format,
+  }),
+  // File transports
+  new winston.transports.File({
+    filename: path.join(logsDir, 'error.log'),
+    level: 'error',
+    format: fileFormat,
+  }),
+  new winston.transports.File({
+    filename: path.join(logsDir, 'all.log'),
+    format: fileFormat,
+  }),
 ];
 
 // Create the logger instance
 const logger = winston.createLogger({
-  level: NODE_ENV === 'development' ? 'debug' : 'warn',
+  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
   levels,
-  format,
   transports,
 });
 
