@@ -17,7 +17,7 @@ export interface GameEvent {
 // TODO: Replace with real WebSocket state
 export function buildMockPlayers(
   players: { uid: string; userName: string }[],
-  localUid: string,
+  localUid: string
 ): GamePlayer[] {
   return players.map((p) => ({
     uid: p.uid,
@@ -53,7 +53,7 @@ export function getInitialEvents(): GameEvent[] {
 // TODO: Replace with real WebSocket state
 export function createActionEvent(
   playerName: string,
-  actionName: string,
+  actionName: string
 ): GameEvent {
   return {
     id: crypto.randomUUID(),

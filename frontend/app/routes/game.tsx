@@ -21,13 +21,13 @@ interface GameState {
 }
 
 const ACTION_TO_ENUM: Record<string, string> = {
-  'INCOME': 'income',
+  INCOME: 'income',
   'FOREIGN AID': 'foreign_aid',
 };
 
 const ENUM_TO_DISPLAY: Record<string, string> = {
-  'income': 'INCOME',
-  'foreign_aid': 'FOREIGN AID',
+  income: 'INCOME',
+  foreign_aid: 'FOREIGN AID',
 };
 
 export default function Game() {
@@ -37,7 +37,7 @@ export default function Game() {
   const state = location.state as GameState | null;
 
   const [players] = useState(() =>
-    state ? buildMockPlayers(state.players, user?.uid ?? '') : [],
+    state ? buildMockPlayers(state.players, user?.uid ?? '') : []
   );
   const [events, setEvents] = useState(() => getInitialEvents());
   const [announcement, setAnnouncement] = useState<{
@@ -54,7 +54,7 @@ export default function Game() {
         createActionEvent(event.userName, displayAction),
       ]);
     },
-    [],
+    []
   );
 
   useGameSSE({

@@ -375,7 +375,9 @@ router.post('/action/:gameCode', async (req: AuthRequest, res: Response) => {
 
     const player = game.players.find((p) => p.uid === uid);
     if (!player) {
-      res.status(FORBIDDEN).json({ error: 'You are not a player in this game' });
+      res
+        .status(FORBIDDEN)
+        .json({ error: 'You are not a player in this game' });
       return;
     }
 
@@ -388,7 +390,9 @@ router.post('/action/:gameCode', async (req: AuthRequest, res: Response) => {
     res.json({ message: 'Action performed' });
   } catch (error) {
     logger.error('Failed to perform action:', error);
-    res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to perform action' });
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Failed to perform action' });
   }
 });
 

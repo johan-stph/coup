@@ -16,7 +16,14 @@ export default function LocalPlayerArea({ player }: LocalPlayerAreaProps) {
           {player.userName}
         </span>
         <span className="flex items-center gap-1 font-mono text-xs text-neon-cyan">
-          <svg className="h-3.5 w-3.5" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round">
+          <svg
+            className="h-3.5 w-3.5"
+            viewBox="0 0 64 64"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="5"
+            strokeLinecap="round"
+          >
             <ellipse cx="32" cy="46" rx="20" ry="7" />
             <ellipse cx="32" cy="38" rx="20" ry="7" />
             <ellipse cx="32" cy="30" rx="20" ry="7" />
