@@ -1,4 +1,4 @@
-import './openapi/extendZod.js';
+import './openapi/extendZod';
 import express from 'express';
 import cors from 'cors';
 import { initializeFirebase } from './auth/firebaseSetup';
@@ -9,10 +9,11 @@ import errorHandler from './error/errorHandler.middleware';
 
 import { PORT } from './constants/environmentVariables';
 import logger from './utils/logger/logger';
-import { connectToDatabase } from './db/connection.js';
+import { connectToDatabase } from './db/connection';
 import { verifyFirebaseToken } from './auth/auth.middleware';
-import openApiRouter from './openapi/openApiRouter.js';
-import gamesRoutes from './api/secured/games.route.js';
+import openApiRouter from './openapi/openApiRouter';
+import gamesRoutes from './api/secured/games.route';
+import userRoutes from './api/secured/user.route';
 
 // Initialize Firebase Admin SDK
 initializeFirebase();
@@ -37,6 +38,7 @@ app.use('/api', openApiRouter);
 app.use(verifyFirebaseToken);
 
 app.use('/api/games', gamesRoutes);
+app.use('/api/user', userRoutes);
 
 // catch all for undefined routes
 app.use((req, _res, next) => {

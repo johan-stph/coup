@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import registry from './openApiRegistry.js';
+import registry from './openApiRegistry';
 
 export const AppErrorResponse = registry.register(
   'AppErrorResponse',
