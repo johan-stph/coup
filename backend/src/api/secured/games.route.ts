@@ -22,6 +22,7 @@ const GameSchema = registry.register(
     name: z.string(),
     gameCode: z.string(),
     players: z.array(PlayerSchema),
+    createdBy: z.string(),
     status: z.enum(GAME_STATUSES),
     createdAt: z.string(),
   })
@@ -70,6 +71,7 @@ router.get('/', async (_req: AuthRequest, res: Response) => {
         name: g.name,
         gameCode: g.gameCode,
         players: g.players,
+        createdBy: g.createdBy,
         status: g.status,
         createdAt: g.createdAt.toISOString(),
       })),
@@ -125,6 +127,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       name,
       status: 'waiting',
       players: [{ uid, userName: user.userName }],
+      createdBy: uid,
     });
     await game.save();
 
@@ -133,6 +136,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       name: game.name,
       gameCode: game.gameCode,
       players: game.players,
+      createdBy: game.createdBy,
       status: game.status,
       createdAt: game.createdAt.toISOString(),
     });
@@ -209,6 +213,7 @@ router.post('/join/:gameCode', async (req: AuthRequest, res: Response) => {
       name: game.name,
       gameCode: game.gameCode,
       players: game.players,
+      createdBy: game.createdBy,
       status: game.status,
       createdAt: game.createdAt.toISOString(),
     });
@@ -267,6 +272,59 @@ router.post('/leave/:gameCode', async (req: AuthRequest, res: Response) => {
   } catch (error) {
     logger.error('Failed to leave game:', error);
     res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to leave game' });
+  }
+});
+
+// POST /api/games/start/:gameCode
+registry.registerPath({
+  method: 'post',
+  path: '/api/games/start/{gameCode}',
+  summary: 'Start a game (admin only)',
+  security: [{ BearerAuth: [] }],
+  request: {
+    params: z.object({
+      gameCode: z.string(),
+    }),
+  },
+  responses: {
+    200: { description: 'Game started successfully' },
+    403: { description: 'Only the lobby admin can start the game' },
+    404: { description: 'Game not found' },
+    409: { description: 'Game is not in waiting status' },
+  },
+});
+
+router.post('/start/:gameCode', async (req: AuthRequest, res: Response) => {
+  try {
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    const game = await Game.findOne({ gameCode });
+
+    if (!game) {
+      res.status(NOT_FOUND).json({ error: 'Game not found' });
+      return;
+    }
+
+    if (game.createdBy !== uid) {
+      res.status(FORBIDDEN).json({ error: 'Only the lobby admin can start the game' });
+      return;
+    }
+
+    if (game.status !== 'waiting') {
+      res.status(CONFLICT).json({ error: 'Game is not in waiting status' });
+      return;
+    }
+
+    game.status = 'in_progress';
+    await game.save();
+
+    broadcast(gameCode as string, 'game_started', { status: 'in_progress' });
+
+    res.json({ message: 'Game started successfully' });
+  } catch (error) {
+    logger.error('Failed to start game:', error);
+    res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to start game' });
   }
 });
 

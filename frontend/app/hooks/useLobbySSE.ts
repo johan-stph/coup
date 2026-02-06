@@ -15,12 +15,14 @@ interface UseLobbySSEOptions {
 interface UseLobbySSEResult {
   players: GamePlayer[];
   connected: boolean;
+  gameStarted: boolean;
   disconnect: () => void;
 }
 
 export function useLobbySSE({ gameCode, initialPlayers }: UseLobbySSEOptions): UseLobbySSEResult {
   const [players, setPlayers] = useState<GamePlayer[]>(initialPlayers);
   const [connected, setConnected] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
   const esRef = useRef<EventSource | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
@@ -65,6 +67,11 @@ export function useLobbySSE({ gameCode, initialPlayers }: UseLobbySSEOptions): U
         setPlayers(data.players);
       });
 
+      es.addEventListener('game_started', () => {
+        if (!mountedRef.current) return;
+        setGameStarted(true);
+      });
+
       es.onopen = () => {
         if (mountedRef.current) setConnected(true);
       };
@@ -101,5 +108,5 @@ export function useLobbySSE({ gameCode, initialPlayers }: UseLobbySSEOptions): U
     }
   }
 
-  return { players, connected, disconnect };
+  return { players, connected, gameStarted, disconnect };
 }

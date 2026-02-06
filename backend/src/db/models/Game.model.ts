@@ -12,6 +12,7 @@ export interface IGame extends Document {
   name: string;
   gameCode: string;
   players: GamePlayer[];
+  createdBy: string;
   status: GameStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -34,6 +35,7 @@ const gameSchema = new Schema<IGame>(
       type: [{ uid: { type: String, required: true }, userName: { type: String, required: true }, _id: false }],
       default: [],
     },
+    createdBy: { type: String, required: true },
     status: {
       type: String,
       enum: GAME_STATUSES,

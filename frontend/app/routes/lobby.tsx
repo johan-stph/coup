@@ -12,6 +12,7 @@ interface LobbyState {
   gameCode: string;
   lobbyName: string;
   players: GamePlayer[];
+  createdBy: string;
 }
 
 export default function Lobby() {
@@ -36,10 +37,22 @@ export default function Lobby() {
     );
   }
 
-  const { players, connected, disconnect } = useLobbySSE({
+  const { players, connected, gameStarted, disconnect } = useLobbySSE({
     gameCode: state.gameCode,
     initialPlayers: state.players ?? [],
   });
+
+  async function handleStartGame() {
+    try {
+      const res = await authFetch(`/games/start/${state!.gameCode}`, { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json();
+        console.error('Failed to start game:', data.error);
+      }
+    } catch (err) {
+      console.error('Failed to start game:', err);
+    }
+  }
 
   async function handleLeaveLobby() {
     disconnect();
@@ -112,8 +125,11 @@ export default function Lobby() {
                 <span className="inline-block h-2 w-2 rounded-full bg-online-green" />
                 <span className="font-mono text-sm text-white">
                   {player.userName}
+                  {state.createdBy === player.uid && (
+                    <span className="ml-2 text-neon-red">(Admin)</span>
+                  )}
                   {user?.uid === player.uid && (
-                    <span className="ml-2 text-text-muted">(You)</span>
+                    <span className="ml-1 text-text-muted">(You)</span>
                   )}
                 </span>
               </div>
@@ -125,6 +141,15 @@ export default function Lobby() {
             </p>
           )}
         </div>
+
+        {user?.uid === state.createdBy && !gameStarted && (
+          <button
+            onClick={handleStartGame}
+            className="corner-brackets bg-neon-red/10 px-10 py-3 font-mono text-sm tracking-widest text-neon-red transition-colors hover:bg-neon-red/20 hover:cursor-pointer"
+          >
+            START OPERATION
+          </button>
+        )}
       </main>
     </div>
   );

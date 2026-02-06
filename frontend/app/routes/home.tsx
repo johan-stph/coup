@@ -46,7 +46,7 @@ export default function Home() {
       const game = await res.json();
 
       navigate("/lobby", {
-        state: { gameCode: game.gameCode, lobbyName: game.name, players: game.players },
+        state: { gameCode: game.gameCode, lobbyName: game.name, players: game.players, createdBy: game.createdBy },
       });
     } catch (err) {
       console.error("Failed to create game:", err);
@@ -74,7 +74,7 @@ export default function Home() {
       const game = await res.json();
 
       navigate("/lobby", {
-        state: { gameCode: game.gameCode, lobbyName: game.name, players: game.players },
+        state: { gameCode: game.gameCode, lobbyName: game.name, players: game.players, createdBy: game.createdBy },
       });
     } catch (err) {
       console.error("Failed to join game:", err);
