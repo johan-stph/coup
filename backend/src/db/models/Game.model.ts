@@ -35,7 +35,7 @@ const gameSchema = new Schema<IGame>(
   { timestamps: true }
 );
 
-gameSchema.pre('save', async function (next) {
+gameSchema.pre('save', async function () {
   if (!this.gameCode) {
     let code = generateGameCode();
     const Game = mongoose.model<IGame>('Game');
@@ -44,7 +44,6 @@ gameSchema.pre('save', async function (next) {
     }
     this.gameCode = code;
   }
-  next();
 });
 
 const Game = mongoose.model<IGame>('Game', gameSchema);

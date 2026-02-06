@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useAuth } from "~/auth/AuthContext";
-import { authFetch } from "~/lib/authFetch";
+import { API_URL } from "~/config/environment";
 import React from "react";
+import { authFetch } from '~/lib/authFetch';
 
 export default function Setup() {
   const { refreshUserData, user } = useAuth();
-  const [userName, setUserName] = useState("");
+  const [userName, setUserName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
@@ -15,28 +16,30 @@ export default function Setup() {
     e.preventDefault();
 
     if (userName.length < 3) {
-      toast.error("Username must be at least 3 characters");
+      toast.error('Username must be at least 3 characters');
       return;
     }
     setIsSubmitting(true);
     try {
-      const response = await authFetch("/user/profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await authFetch(`${API_URL}/user/profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ userName }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to create profile");
+        throw new Error(error.error || 'Failed to create profile');
       }
 
       await refreshUserData();
-      toast.success("Profile created successfully!");
-      navigate("/");
+      toast.success('Profile created successfully!');
+      navigate('/');
     } catch (error: any) {
-      console.error("Setup error:", error);
-      toast.error(error.message || "Failed to create profile");
+      console.error('Setup error:', error);
+      toast.error(error.message || 'Failed to create profile');
     } finally {
       setIsSubmitting(false);
     }
@@ -97,7 +100,7 @@ export default function Setup() {
                 <span>Creating profile...</span>
               </div>
             ) : (
-              "Continue"
+              'Continue'
             )}
           </button>
         </form>

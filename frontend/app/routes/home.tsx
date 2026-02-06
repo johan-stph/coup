@@ -1,19 +1,19 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
-import type { Route } from "./+types/home";
-import TopBar from "~/components/TopBar";
-import Logo from "~/components/Logo";
-import ActionButtons from "~/components/ActionButtons";
-import AvatarCard from "~/components/AvatarCard";
-import CreateGameModal from "~/components/CreateGameModal";
+import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import type { Route } from './+types/home';
+import TopBar from '~/components/TopBar';
+import Logo from '~/components/Logo';
+import ActionButtons from '~/components/ActionButtons';
+import AvatarCard from '~/components/AvatarCard';
+import CreateGameModal from '~/components/CreateGameModal';
 import { authFetch } from "~/lib/authFetch";
 
 export function meta(_unused: Route.MetaArgs) {
   return [
-    { title: "Coopia — Resistance Protocol" },
+    { title: 'Coopia — Resistance Protocol' },
     {
-      name: "description",
-      content: "Online multiplayer deception game",
+      name: 'description',
+      content: 'Online multiplayer deception game',
     },
   ];
 }
@@ -30,19 +30,19 @@ export default function Home() {
 
     try {
       const res = await authFetch("/games", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: lobbyName }),
       });
 
       const game = await res.json();
 
-      navigate("/lobby", {
+      navigate('/lobby', {
         state: { gameCode: game.gameCode, lobbyName: game.name },
       });
     } catch (err) {
-      console.error("Failed to create game:", err);
-      setError("Connection failed. Try again.");
+      console.error('Failed to create game:', err);
+      setError('Connection failed. Try again.');
     } finally {
       setLoading(false);
     }

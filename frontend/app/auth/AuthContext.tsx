@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
   onAuthStateChanged,
   signOut,
@@ -50,7 +50,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     firebaseUser: User,
     profileData: BackendUser | null,
     setupRequired: boolean,
-    userRole: string | null,
+    userRole: string | null
   ): CombinedUser {
     return {
       uid: firebaseUser.uid,
@@ -84,15 +84,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Get ID token for the current user
   async function getIdToken(forceRefresh: boolean = false): Promise<string> {
     if (!auth.currentUser) {
-      throw new Error("No authenticated user found");
+      throw new Error('No authenticated user found');
     }
 
     try {
       const idToken = await auth.currentUser.getIdToken(forceRefresh);
       return idToken;
     } catch (error) {
-      console.error("Error getting ID token:", error);
-      throw new Error("Failed to get authentication token");
+      console.error('Error getting ID token:', error);
+      throw new Error('Failed to get authentication token');
     }
   }
 
@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await authFetch("/user/profile");
 
       if (!response.ok) {
-        throw new Error("Failed to fetch user profile");
+        throw new Error('Failed to fetch user profile');
       }
 
       const data = await response.json();
@@ -136,11 +136,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         auth.currentUser,
         data.profile,
         !data.exists,
-        null,
+        null
       );
       setUser(combinedUser);
     } catch (error: any) {
-      console.error("Error refreshing user data:", error);
+      console.error('Error refreshing user data:', error);
       setAuthError(error.message);
     }
   }
@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const response = await authFetch("/user/profile");
 
           if (!response.ok) {
-            throw new Error("Failed to fetch user profile");
+            throw new Error('Failed to fetch user profile');
           }
 
           const data = await response.json();
@@ -161,11 +161,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             firebaseUser,
             data.profile,
             !data.exists,
-            null,
+            null
           );
           setUser(combinedUser);
         } catch (error: any) {
-          console.error("Error fetching user profile:", error);
+          console.error('Error fetching user profile:', error);
           setAuthError(error.message);
         } finally {
           setLoading(false);
@@ -205,7 +205,7 @@ const GuardedAuthContext = createContext<GuardedAuthContextType | null>(null);
 export function useGuardedAuth(): GuardedAuthContextType {
   const context = useContext(GuardedAuthContext);
   if (!context) {
-    throw new Error("useGuardedAuth must be used within a StudentGuard");
+    throw new Error('useGuardedAuth must be used within a StudentGuard');
   }
   return context;
 }

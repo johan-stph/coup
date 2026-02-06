@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate } from 'react-router';
 
 interface LobbyState {
   gameCode: string;
@@ -17,10 +17,10 @@ export default function Lobby() {
           No active lobby session.
         </p>
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate('/')}
           className="mt-4 font-mono text-xs text-neon-red transition-colors hover:text-white hover:cursor-pointer"
         >
-          {"< RETURN TO BASE"}
+          {'< RETURN TO BASE'}
         </button>
       </div>
     );
@@ -31,10 +31,10 @@ export default function Lobby() {
       {/* Top bar */}
       <header className="flex items-center justify-between px-6 py-4">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate('/')}
           className="font-mono text-xs tracking-widest text-text-muted transition-colors hover:text-white hover:cursor-pointer"
         >
-          {"< EXIT LOBBY"}
+          {'< EXIT LOBBY'}
         </button>
         <div className="flex items-center gap-2 font-mono text-xs tracking-widest text-neon-red-dim">
           <span className="status-pulse inline-block h-2 w-2 rounded-full bg-neon-red" />
