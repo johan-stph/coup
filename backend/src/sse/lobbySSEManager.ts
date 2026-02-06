@@ -29,7 +29,9 @@ export function removeClient(
   res: Response
 ): void {
   const clients = lobbies.get(gameCode);
-  if (!clients) return;
+  if (!clients) {
+    return;
+  }
 
   // Only remove if the res reference matches (prevents stale close handler
   // from removing a fresh reconnection)
@@ -45,7 +47,9 @@ export function removeClient(
 
 export function closeClient(gameCode: string, uid: string): void {
   const clients = lobbies.get(gameCode);
-  if (!clients) return;
+  if (!clients) {
+    return;
+  }
 
   const index = clients.findIndex((c) => c.uid === uid);
   if (index !== -1) {
@@ -64,7 +68,9 @@ export function broadcast(
   data: unknown
 ): void {
   const clients = lobbies.get(gameCode);
-  if (!clients) return;
+  if (!clients) {
+    return;
+  }
 
   const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 
