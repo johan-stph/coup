@@ -1,6 +1,7 @@
 import winston from 'winston';
 import path from 'path';
 import fs from 'fs';
+import { NODE_ENV } from '../../constants/environmentVariables';
 
 // Ensure logs directory exists
 const logsDir = path.join(process.cwd(), 'logs');
@@ -66,7 +67,7 @@ const transports = [
 
 // Create the logger instance
 const logger = winston.createLogger({
-  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+  level: NODE_ENV === 'development' ? 'debug' : 'info',
   levels,
   transports,
 });
