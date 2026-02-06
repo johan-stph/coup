@@ -8,6 +8,8 @@ import AvatarCard from '~/components/AvatarCard';
 import CreateGameModal from '~/components/CreateGameModal';
 import JoinGameModal from '~/components/JoinGameModal';
 import { authFetch } from '~/lib/authFetch';
+import { ProtectedRoute } from '~/components/ProtectedRoute';
+import { useGuardedAuth } from '~/auth/AuthContext';
 
 export function meta(_unused: Route.MetaArgs) {
   return [
@@ -24,6 +26,7 @@ export default function Home() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { user } = useGuardedAuth();
   const [error, setError] = useState<string | null>(null);
 
   async function handleCreateGame(lobbyName: string) {
@@ -101,33 +104,35 @@ export default function Home() {
   }
 
   return (
-    <div className="bg-radial-glow scanlines flex min-h-screen flex-col text-white">
-      <TopBar />
+    <ProtectedRoute>
+      <div className="bg-radial-glow scanlines flex min-h-screen flex-col text-white">
+        <TopBar />
 
-      <main className="flex flex-1 flex-col items-center justify-center gap-12 px-4 pb-16">
-        <Logo />
-        <ActionButtons
-          onCreateGame={() => setCreateModalOpen(true)}
-          onJoinGame={() => setJoinModalOpen(true)}
+        <main className="flex flex-1 flex-col items-center justify-center gap-12 px-4 pb-16">
+          <Logo />
+          <ActionButtons
+            onCreateGame={() => setCreateModalOpen(true)}
+            onJoinGame={() => setJoinModalOpen(true)}
+          />
+          <AvatarCard userName={user.userName} />
+        </main>
+
+        <CreateGameModal
+          open={createModalOpen}
+          onClose={closeModals}
+          onConfirm={handleCreateGame}
+          loading={loading}
+          error={error}
         />
-        <AvatarCard />
-      </main>
 
-      <CreateGameModal
-        open={createModalOpen}
-        onClose={closeModals}
-        onConfirm={handleCreateGame}
-        loading={loading}
-        error={error}
-      />
-
-      <JoinGameModal
-        open={joinModalOpen}
-        onClose={closeModals}
-        onConfirm={handleJoinGame}
-        loading={loading}
-        error={error}
-      />
-    </div>
+        <JoinGameModal
+          open={joinModalOpen}
+          onClose={closeModals}
+          onConfirm={handleJoinGame}
+          loading={loading}
+          error={error}
+        />
+      </div>
+    </ProtectedRoute>
   );
 }
