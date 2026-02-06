@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useAuth } from '~/auth/AuthContext';
 import { authFetch } from '~/lib/authFetch';
@@ -20,6 +21,8 @@ export default function Lobby() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const state = location.state as LobbyState | null;
+
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   if (!state?.gameCode) {
     return (
@@ -56,6 +59,29 @@ export default function Lobby() {
     }
   }
 
+  useEffect(() => {
+    if (!gameStarted) return;
+    setCountdown(3);
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1_000);
+    return () => clearInterval(interval);
+  }, [gameStarted]);
+
+  useEffect(() => {
+    if (countdown !== 0) return;
+    disconnect();
+    navigate('/game', {
+      state: { gameCode: state.gameCode, lobbyName: state.lobbyName, players },
+    });
+  }, [countdown]);
+
   async function handleLeaveLobby() {
     disconnect();
     try {
@@ -64,6 +90,19 @@ export default function Lobby() {
       // Best-effort — navigate home regardless
     }
     navigate('/');
+  }
+
+  if (countdown !== null && countdown > 0) {
+    return (
+      <div className="bg-radial-glow scanlines flex min-h-screen flex-col items-center justify-center text-white">
+        <span className="font-mono text-[10px] tracking-[0.3em] text-text-muted">
+          OPERATION STARTING IN
+        </span>
+        <span className="logo-glow font-display text-[12rem] font-black leading-none text-neon-red">
+          {countdown}
+        </span>
+      </div>
+    );
   }
 
   return (
