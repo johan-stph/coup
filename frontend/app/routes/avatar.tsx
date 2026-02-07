@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { Link } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { useAvatar } from '~/avatar/AvatarContext';
 import AvatarPreview from '~/components/AvatarPreview';
 import { CATEGORIES } from '~/data/avatarCategories';
+import { authFetch } from '~/lib/authFetch';
 
 function OptionSelector({
   label,
@@ -44,10 +46,28 @@ function OptionSelector({
   );
 }
 
+function imageToIndex(categoryIndex: number, image: string | null): number {
+  if (image === null) return 0;
+  const idx = CATEGORIES[categoryIndex].options.findIndex(
+    (opt) => opt.image === image
+  );
+  return idx === -1 ? 0 : idx;
+}
+
 export default function Avatar() {
+  const { accessory, character, background, refreshAvatar } = useAvatar();
   const [indices, setIndices] = useState([0, 0, 0]);
+  const navigate = useNavigate();
 
   const characterSelected = indices[1] !== 0;
+
+  useEffect(() => {
+    setIndices([
+      imageToIndex(0, accessory),
+      imageToIndex(1, character),
+      imageToIndex(2, background),
+    ]);
+  }, [accessory, character, background]);
 
   function cycle(categoryIndex: number, direction: 1 | -1) {
     setIndices((prev) => {
@@ -62,9 +82,28 @@ export default function Avatar() {
     });
   }
 
+  async function handleSave() {
+    const body = {
+      accessory: CATEGORIES[0].options[indices[0]].image,
+      character: CATEGORIES[1].options[indices[1]].image,
+      background: CATEGORIES[2].options[indices[2]].image,
+    };
+
+    const res = await authFetch('/avatar', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+      await refreshAvatar();
+      navigate('/');
+    }
+  }
+
   return (
     <div className="bg-radial-glow scanlines flex min-h-screen flex-col text-white">
-      <div className="flex flex-1 items-center justify-center gap-16 px-4">
+      <div className="flex flex-1 flex-col items-center justify-center gap-8 px-4 md:flex-row md:gap-16">
         <AvatarPreview
           background={CATEGORIES[2].options[indices[2]].image}
           character={CATEGORIES[1].options[indices[1]].image}
@@ -92,7 +131,10 @@ export default function Avatar() {
         >
           BACK
         </Link>
-        <button className="flex items-center gap-2 border border-neon-red px-8 py-3 font-display text-sm font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 hover:cursor-pointer">
+        <button
+          onClick={handleSave}
+          className="flex items-center gap-2 border border-neon-red px-8 py-3 font-display text-sm font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 hover:cursor-pointer"
+        >
           SAVE
           <svg
             xmlns="http://www.w3.org/2000/svg"
