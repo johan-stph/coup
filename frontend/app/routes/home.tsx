@@ -113,6 +113,8 @@ export default function Home() {
           <ActionButtons
             onCreateGame={() => setCreateModalOpen(true)}
             onJoinGame={() => setJoinModalOpen(true)}
+            onAvatar={() => navigate('/avatar')}
+            onChallenges={() => navigate('/challenges')}
           />
           <AvatarCard userName={user.userName} />
         </main>

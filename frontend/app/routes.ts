@@ -11,6 +11,8 @@ export default [
   layout('routes/layout.tsx', [
     index('routes/home.tsx'),
     route('lobby', 'routes/lobby.tsx'),
+    route('avatar', 'routes/avatar.tsx'),
+    route('challenges', 'routes/challenges.tsx'),
     route('game', 'routes/game.tsx'),
     route('logout', 'routes/auth/Logout.tsx'),
   ]),
