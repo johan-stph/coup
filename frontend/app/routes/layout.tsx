@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router';
 import { ProtectedRoute } from '~/components/ProtectedRoute';
 import { useAuth, GuardedAuthContext } from '~/auth/AuthContext';
+import { AvatarProvider } from '~/avatar/AvatarContext';
 
 function GuardedContent() {
   const { user, getIdToken, refreshUserData } = useAuth();
@@ -15,7 +16,9 @@ function GuardedContent() {
         refreshUserData,
       }}
     >
-      <Outlet />
+      <AvatarProvider>
+        <Outlet />
+      </AvatarProvider>
     </GuardedAuthContext.Provider>
   );
 }

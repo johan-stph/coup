@@ -1,14 +1,24 @@
 interface ActionButtonsProps {
   onCreateGame: () => void;
   onJoinGame: () => void;
+  onAvatar: () => void;
+  onChallenges: () => void;
 }
 
 export default function ActionButtons({
   onCreateGame,
   onJoinGame,
+  onAvatar,
+  onChallenges,
 }: ActionButtonsProps) {
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+      <button
+        onClick={onAvatar}
+        className="w-52 border border-text-muted py-3 text-center font-display text-sm font-semibold tracking-widest text-text-muted transition-all hover:border-white hover:text-white hover:cursor-pointer"
+      >
+        AVATAR
+      </button>
       <button
         onClick={onCreateGame}
         className="btn-glow w-52 border border-neon-red py-3 text-center font-display text-sm font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 hover:cursor-pointer"
@@ -20,6 +30,12 @@ export default function ActionButtons({
         className="btn-glow w-52 border border-neon-red py-3 text-center font-display text-sm font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 hover:cursor-pointer"
       >
         JOIN GAME
+      </button>
+      <button
+        onClick={onChallenges}
+        className="w-52 border border-text-muted py-3 text-center font-display text-sm font-semibold tracking-widest text-text-muted transition-all hover:border-white hover:text-white hover:cursor-pointer"
+      >
+        CHALLENGES
       </button>
     </div>
   );

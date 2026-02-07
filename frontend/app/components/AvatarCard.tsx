@@ -1,4 +1,9 @@
+import { useAvatar } from '~/avatar/AvatarContext';
+
 export default function AvatarCard({ userName }: { userName: string }) {
+  const { accessory, character, background } = useAvatar();
+  const hasAvatar = background || character || accessory;
+
   return (
     <div className="flex flex-col items-center gap-3">
       {/* Avatar frame with corner brackets */}
@@ -7,14 +12,39 @@ export default function AvatarCard({ userName }: { userName: string }) {
           {/* Online indicator dot */}
           <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-neon-red status-pulse" />
 
-          {/* Placeholder avatar */}
-          <svg
-            className="h-20 w-20 text-surface-light"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-          </svg>
+          {hasAvatar ? (
+            <>
+              {background && (
+                <img
+                  src={background}
+                  alt="Background"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              )}
+              {character && (
+                <img
+                  src={character}
+                  alt="Character"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              )}
+              {accessory && (
+                <img
+                  src={accessory}
+                  alt="Accessory"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              )}
+            </>
+          ) : (
+            <svg
+              className="h-20 w-20 text-surface-light"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+            </svg>
+          )}
 
           {/* ID label */}
           <span className="absolute bottom-2 left-3 font-mono text-[10px] text-text-muted">
