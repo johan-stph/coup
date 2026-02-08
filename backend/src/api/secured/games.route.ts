@@ -13,7 +13,11 @@ import {
   NOT_FOUND,
   OK,
 } from '../../constants/http';
-import { GAME_ACTIONS } from '../../constants/gameActions';
+import {
+  GAME_ACTIONS,
+  BLOCK_ACTIONS,
+  ROLES,
+} from '../../constants/gameActions';
 import logger from '../../utils/logger/logger';
 import {
   addClient,
@@ -21,6 +25,16 @@ import {
   closeClient,
   broadcast,
 } from '../../sse/lobbySSEManager';
+import {
+  initializeGame,
+  performAction,
+  processChallenge,
+  processBlock,
+  passResponse,
+  loseInfluence,
+  getGameStateForPlayer,
+} from '../../game/coupEngine';
+import AppError from '../../error/AppError';
 
 const router = Router();
 
@@ -334,10 +348,16 @@ router.post('/start/:gameCode', async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    // Initialize game state
     game.status = 'in_progress';
+    initializeGame(game);
     await game.save();
 
-    broadcast(gameCode as string, 'game_started', { status: 'in_progress' });
+    // Broadcast game started with initial state to each player
+    for (const player of game.players) {
+      const playerState = getGameStateForPlayer(game, player.uid);
+      broadcast(gameCode as string, 'game_started', playerState);
+    }
 
     res.json({ message: 'Game started successfully' });
   } catch (error) {
@@ -347,7 +367,10 @@ router.post('/start/:gameCode', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /api/games/action/:gameCode
-const ActionBody = z.object({ action: z.enum(GAME_ACTIONS) });
+const ActionBody = z.object({
+  action: z.enum(GAME_ACTIONS),
+  targetUid: z.string().optional(),
+});
 
 router.post('/action/:gameCode', async (req: AuthRequest, res: Response) => {
   try {
@@ -357,7 +380,7 @@ router.post('/action/:gameCode', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const { action } = parsed.data;
+    const { action, targetUid } = parsed.data;
     const { gameCode } = req.params;
     const uid = req.user!.uid;
 
@@ -381,18 +404,272 @@ router.post('/action/:gameCode', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    broadcast(gameCode as string, 'action_performed', {
-      uid,
-      userName: player.userName,
-      action,
-    });
+    // Perform action using game engine
+    performAction(game, uid, action, targetUid);
+    await game.save();
+
+    // Broadcast updated game state to all players
+    for (const p of game.players) {
+      const playerState = getGameStateForPlayer(game, p.uid);
+      broadcast(gameCode as string, 'game_state_updated', playerState);
+    }
 
     res.json({ message: 'Action performed' });
   } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
     logger.error('Failed to perform action:', error);
     res
       .status(INTERNAL_SERVER_ERROR)
       .json({ error: 'Failed to perform action' });
+  }
+});
+
+// POST /api/games/challenge/:gameCode
+router.post('/challenge/:gameCode', async (req: AuthRequest, res: Response) => {
+  try {
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    const game = await Game.findOne({ gameCode });
+
+    if (!game) {
+      res.status(NOT_FOUND).json({ error: 'Game not found' });
+      return;
+    }
+
+    if (game.status !== 'in_progress') {
+      res.status(CONFLICT).json({ error: 'Game is not in progress' });
+      return;
+    }
+
+    if (!game.players.some((p) => p.uid === uid)) {
+      res
+        .status(FORBIDDEN)
+        .json({ error: 'You are not a player in this game' });
+      return;
+    }
+
+    // Process challenge
+    processChallenge(game, uid);
+    await game.save();
+
+    // Broadcast updated game state to all players
+    for (const p of game.players) {
+      const playerState = getGameStateForPlayer(game, p.uid);
+      broadcast(gameCode as string, 'game_state_updated', playerState);
+    }
+
+    res.json({ message: 'Challenge processed' });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    logger.error('Failed to process challenge:', error);
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Failed to process challenge' });
+  }
+});
+
+// POST /api/games/block/:gameCode
+const BlockBody = z.object({
+  blockAction: z.enum(BLOCK_ACTIONS),
+  claimedRole: z.enum(ROLES),
+});
+
+router.post('/block/:gameCode', async (req: AuthRequest, res: Response) => {
+  try {
+    const parsed = BlockBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(BAD_REQUEST).json({ error: parsed.error.issues });
+      return;
+    }
+
+    const { blockAction, claimedRole } = parsed.data;
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    const game = await Game.findOne({ gameCode });
+
+    if (!game) {
+      res.status(NOT_FOUND).json({ error: 'Game not found' });
+      return;
+    }
+
+    if (game.status !== 'in_progress') {
+      res.status(CONFLICT).json({ error: 'Game is not in progress' });
+      return;
+    }
+
+    if (!game.players.some((p) => p.uid === uid)) {
+      res
+        .status(FORBIDDEN)
+        .json({ error: 'You are not a player in this game' });
+      return;
+    }
+
+    // Process block
+    processBlock(game, uid, blockAction, claimedRole);
+    await game.save();
+
+    // Broadcast updated game state to all players
+    for (const p of game.players) {
+      const playerState = getGameStateForPlayer(game, p.uid);
+      broadcast(gameCode as string, 'game_state_updated', playerState);
+    }
+
+    res.json({ message: 'Block processed' });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    logger.error('Failed to process block:', error);
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Failed to process block' });
+  }
+});
+
+// POST /api/games/pass/:gameCode
+router.post('/pass/:gameCode', async (req: AuthRequest, res: Response) => {
+  try {
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    const game = await Game.findOne({ gameCode });
+
+    if (!game) {
+      res.status(NOT_FOUND).json({ error: 'Game not found' });
+      return;
+    }
+
+    if (game.status !== 'in_progress') {
+      res.status(CONFLICT).json({ error: 'Game is not in progress' });
+      return;
+    }
+
+    if (!game.players.some((p) => p.uid === uid)) {
+      res
+        .status(FORBIDDEN)
+        .json({ error: 'You are not a player in this game' });
+      return;
+    }
+
+    // Pass on challenge/block
+    passResponse(game, uid);
+    await game.save();
+
+    // Broadcast updated game state to all players
+    for (const p of game.players) {
+      const playerState = getGameStateForPlayer(game, p.uid);
+      broadcast(gameCode as string, 'game_state_updated', playerState);
+    }
+
+    res.json({ message: 'Pass recorded' });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    logger.error('Failed to process pass:', error);
+    res.status(INTERNAL_SERVER_ERROR).json({ error: 'Failed to process pass' });
+  }
+});
+
+// POST /api/games/lose-influence/:gameCode
+const LoseInfluenceBody = z.object({
+  role: z.enum(ROLES),
+});
+
+router.post(
+  '/lose-influence/:gameCode',
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const parsed = LoseInfluenceBody.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(BAD_REQUEST).json({ error: parsed.error.issues });
+        return;
+      }
+
+      const { role } = parsed.data;
+      const { gameCode } = req.params;
+      const uid = req.user!.uid;
+
+      const game = await Game.findOne({ gameCode });
+
+      if (!game) {
+        res.status(NOT_FOUND).json({ error: 'Game not found' });
+        return;
+      }
+
+      if (game.status !== 'in_progress') {
+        res.status(CONFLICT).json({ error: 'Game is not in progress' });
+        return;
+      }
+
+      if (!game.players.some((p) => p.uid === uid)) {
+        res
+          .status(FORBIDDEN)
+          .json({ error: 'You are not a player in this game' });
+        return;
+      }
+
+      // Lose influence
+      loseInfluence(game, uid, role);
+      await game.save();
+
+      // Broadcast updated game state to all players
+      for (const p of game.players) {
+        const playerState = getGameStateForPlayer(game, p.uid);
+        broadcast(gameCode as string, 'game_state_updated', playerState);
+      }
+
+      res.json({ message: 'Influence lost' });
+    } catch (error) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+      logger.error('Failed to lose influence:', error);
+      res
+        .status(INTERNAL_SERVER_ERROR)
+        .json({ error: 'Failed to lose influence' });
+    }
+  }
+);
+
+// GET /api/games/:gameCode/state
+router.get('/:gameCode/state', async (req: AuthRequest, res: Response) => {
+  try {
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    const game = await Game.findOne({ gameCode });
+
+    if (!game) {
+      res.status(NOT_FOUND).json({ error: 'Game not found' });
+      return;
+    }
+
+    if (!game.players.some((p) => p.uid === uid)) {
+      res
+        .status(FORBIDDEN)
+        .json({ error: 'You are not a player in this game' });
+      return;
+    }
+
+    const gameState = getGameStateForPlayer(game, uid);
+    res.json(gameState);
+  } catch (error) {
+    logger.error('Failed to get game state:', error);
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Failed to get game state' });
   }
 });
 

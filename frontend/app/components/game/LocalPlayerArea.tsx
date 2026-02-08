@@ -1,10 +1,20 @@
-import type { GamePlayer } from '~/lib/gameMockData';
+import type { PlayerState, Role } from '~/types/game';
+import { ROLE_DISPLAY } from '~/types/game';
 
 interface LocalPlayerAreaProps {
-  player: GamePlayer;
+  player: PlayerState;
+  userName: string;
+  isYourTurn: boolean;
 }
 
-export default function LocalPlayerArea({ player }: LocalPlayerAreaProps) {
+export default function LocalPlayerArea({
+  player,
+  userName,
+  isYourTurn,
+}: LocalPlayerAreaProps) {
+  const totalInfluences = player.influenceCount;
+  const visibleCards = player.influences || [];
+
   return (
     <div className="flex items-center justify-between border-t border-surface-light bg-surface/50 px-6 py-4">
       {/* Left — operative info */}
@@ -13,7 +23,7 @@ export default function LocalPlayerArea({ player }: LocalPlayerAreaProps) {
           OPERATIVE
         </span>
         <span className="font-display text-sm font-bold tracking-wider text-white">
-          {player.userName}
+          {userName}
         </span>
         <span className="flex items-center gap-1 font-mono text-xs text-neon-cyan">
           <svg
@@ -35,11 +45,23 @@ export default function LocalPlayerArea({ player }: LocalPlayerAreaProps) {
 
       {/* Center — influence cards */}
       <div className="flex gap-3">
-        {Array.from({ length: player.cardCount }).map((_, i) => (
+        {/* Hidden influences */}
+        {visibleCards.map((role, i) => (
           <div key={i} className="corner-brackets">
-            <div className="flex h-22 w-16 items-center justify-center bg-surface-light">
-              <span className="font-mono text-[8px] tracking-widest text-text-muted">
-                CLASSIFIED
+            <div className="flex h-22 w-16 flex-col items-center justify-center gap-1 bg-surface-light p-2">
+              <span className="font-display text-[10px] font-bold tracking-wider text-neon-cyan">
+                {ROLE_DISPLAY[role]}
+              </span>
+            </div>
+          </div>
+        ))}
+
+        {/* Revealed influences */}
+        {player.revealedInfluences.map((role, i) => (
+          <div key={`revealed-${i}`} className="opacity-50">
+            <div className="flex h-22 w-16 flex-col items-center justify-center gap-1 border border-text-muted/30 bg-surface p-2">
+              <span className="font-mono text-[8px] tracking-wider text-text-muted line-through">
+                {ROLE_DISPLAY[role]}
               </span>
             </div>
           </div>
@@ -47,13 +69,21 @@ export default function LocalPlayerArea({ player }: LocalPlayerAreaProps) {
       </div>
 
       {/* Right — turn indicator */}
-      {/* TODO: based on real turn state */}
-      <div className="flex items-center gap-2">
-        <span className="status-pulse inline-block h-2 w-2 rounded-full bg-neon-cyan" />
-        <span className="font-mono text-xs tracking-widest text-neon-cyan">
-          YOUR TURN
-        </span>
-      </div>
+      {isYourTurn ? (
+        <div className="flex items-center gap-2">
+          <span className="status-pulse inline-block h-2 w-2 rounded-full bg-neon-cyan" />
+          <span className="font-mono text-xs tracking-widest text-neon-cyan">
+            YOUR TURN
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-full bg-text-muted/30" />
+          <span className="font-mono text-xs tracking-widest text-text-muted">
+            STANDBY
+          </span>
+        </div>
+      )}
     </div>
   );
 }
