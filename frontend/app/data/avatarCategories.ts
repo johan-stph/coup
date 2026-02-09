@@ -1,4 +1,4 @@
-export type AvatarOption = { label: string; image: string | null };
+export type AvatarOption = { label: string; image: string | null; purchasable?: boolean };
 export type AvatarCategory = { key: string; options: AvatarOption[] };
 
 export const CATEGORIES: AvatarCategory[] = [
@@ -15,7 +15,7 @@ export const CATEGORIES: AvatarCategory[] = [
       { label: 'None', image: null },
       { label: 'Male', image: '/avatar/character/male_character.png' },
       { label: 'Female', image: '/avatar/character/female_character.png' },
-      { label: 'Premium', image: '/avatar/character/premium_character.png' },
+      { label: 'Premium', image: '/avatar/character/premium_character.png', purchasable: true },
     ],
   },
   {

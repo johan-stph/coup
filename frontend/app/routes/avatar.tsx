@@ -9,12 +9,14 @@ function OptionSelector({
   label,
   value,
   disabled,
+  locked,
   onPrev,
   onNext,
 }: {
   label: string;
   value: string;
   disabled?: boolean;
+  locked?: boolean;
   onPrev: () => void;
   onNext: () => void;
 }) {
@@ -31,7 +33,9 @@ function OptionSelector({
         >
           &lt;
         </button>
-        <span className="w-44 text-center font-display text-lg tracking-wider text-white">
+        <span
+          className={`w-44 text-center font-display text-lg tracking-wider ${locked ? 'text-text-muted line-through' : 'text-white'}`}
+        >
           {value}
         </span>
         <button
@@ -57,9 +61,18 @@ function imageToIndex(categoryIndex: number, image: string | null): number {
 export default function Avatar() {
   const { accessory, character, background, refreshAvatar } = useAvatar();
   const [indices, setIndices] = useState([0, 0, 0]);
+  const [purchasedAssets, setPurchasedAssets] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
 
   const characterSelected = indices[1] !== 0;
+
+  useEffect(() => {
+    authFetch('/purchases')
+      .then((res) => res.json())
+      .then((data: { asset: string }[]) =>
+        setPurchasedAssets(new Set(data.map((p) => p.asset)))
+      );
+  }, []);
 
   useEffect(() => {
     setIndices([
@@ -68,6 +81,11 @@ export default function Avatar() {
       imageToIndex(2, background),
     ]);
   }, [accessory, character, background]);
+
+  function isLocked(categoryIndex: number): boolean {
+    const option = CATEGORIES[categoryIndex].options[indices[categoryIndex]];
+    return !!option.purchasable && !purchasedAssets.has(option.image!);
+  }
 
   function cycle(categoryIndex: number, direction: 1 | -1) {
     setIndices((prev) => {
@@ -108,6 +126,7 @@ export default function Avatar() {
           background={CATEGORIES[2].options[indices[2]].image}
           character={CATEGORIES[1].options[indices[1]].image}
           accessory={CATEGORIES[0].options[indices[0]].image}
+          locked={isLocked(0) || isLocked(1) || isLocked(2)}
         />
 
         <div className="flex flex-col gap-8">
@@ -117,6 +136,7 @@ export default function Avatar() {
               label={cat.key}
               value={cat.options[indices[i]].label}
               disabled={i === 0 && !characterSelected}
+              locked={isLocked(i)}
               onPrev={() => cycle(i, -1)}
               onNext={() => cycle(i, 1)}
             />

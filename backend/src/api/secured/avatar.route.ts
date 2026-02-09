@@ -3,7 +3,9 @@ import { z } from 'zod';
 import registry from '../../openapi/openApiRegistry';
 import { AuthRequest } from '../../auth/auth.middleware';
 import Avatar from '../../db/models/Avatar.model';
-import { INTERNAL_SERVER_ERROR, OK } from '../../constants/http';
+import { BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, OK } from '../../constants/http';
+import { PURCHASABLE_ASSETS } from '../../constants/purchasableAssets';
+import Purchase from '../../db/models/Purchase.model';
 import logger from '../../utils/logger/logger';
 
 const router = Router();
@@ -108,6 +110,21 @@ router.put('/', async (req: AuthRequest, res: Response) => {
     }
 
     const { accessory, character, background } = parsed.data;
+
+    const selectedAssets = [accessory, character, background].filter(
+      (asset): asset is string => asset !== null && PURCHASABLE_ASSETS.has(asset)
+    );
+
+    if (selectedAssets.length > 0) {
+      const purchaseCount = await Purchase.countDocuments({
+        uid: firebaseUid,
+        asset: { $in: selectedAssets },
+      });
+
+      if (purchaseCount !== selectedAssets.length) {
+        return res.status(FORBIDDEN).json({ error: 'Asset not purchased' });
+      }
+    }
 
     const avatar = await Avatar.findByIdAndUpdate(
       firebaseUid,
