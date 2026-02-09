@@ -15,6 +15,7 @@ import openApiRouter from './openapi/openApiRouter';
 import gamesRoutes from './api/secured/games.route';
 import userRoutes from './api/secured/user.route';
 import avatarRoutes from './api/secured/avatar.route';
+import purchaseRoutes from './api/secured/purchase.route';
 
 // Initialize Firebase Admin SDK
 initializeFirebase();
@@ -41,6 +42,7 @@ app.use(verifyFirebaseToken);
 app.use('/api/games', gamesRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/avatar', avatarRoutes);
+app.use('/api/purchases', purchaseRoutes);
 
 // catch all for undefined routes
 app.use((req, _res, next) => {
