@@ -1,17 +1,28 @@
-import type { GamePlayer } from '~/lib/gameMockData';
+import type { PlayerState } from '~/types/game';
+import { ROLE_DISPLAY } from '~/types/game';
 
 interface PlayerCardProps {
-  player: GamePlayer;
+  player: PlayerState;
+  userName: string;
+  isCurrentTurn?: boolean;
 }
 
-export default function PlayerCard({ player }: PlayerCardProps) {
+export default function PlayerCard({
+  player,
+  userName,
+  isCurrentTurn = false,
+}: PlayerCardProps) {
   return (
     <div className="flex w-28 flex-col items-center gap-2">
       {/* Avatar placeholder */}
-      <div className="corner-brackets">
-        <div className="flex h-16 w-16 items-center justify-center bg-surface">
+      <div
+        className={`corner-brackets ${isCurrentTurn ? 'border-neon-cyan' : ''}`}
+      >
+        <div
+          className={`flex h-16 w-16 items-center justify-center ${isCurrentTurn ? 'bg-neon-cyan/10' : 'bg-surface'}`}
+        >
           <svg
-            className="h-8 w-8 text-surface-light"
+            className={`h-8 w-8 ${isCurrentTurn ? 'text-neon-cyan' : 'text-surface-light'}`}
             fill="currentColor"
             viewBox="0 0 24 24"
           >
@@ -21,8 +32,10 @@ export default function PlayerCard({ player }: PlayerCardProps) {
       </div>
 
       {/* Username */}
-      <span className="w-full truncate text-center font-display text-xs font-semibold tracking-wider text-white">
-        {player.userName}
+      <span
+        className={`w-full truncate text-center font-display text-xs font-semibold tracking-wider ${isCurrentTurn ? 'text-neon-cyan' : 'text-white'}`}
+      >
+        {userName}
       </span>
 
       {/* Coins */}
@@ -43,14 +56,27 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         {player.coins}
       </span>
 
-      {/* Face-down cards */}
+      {/* Face-down and revealed cards */}
       <div className="flex gap-1.5">
-        {Array.from({ length: player.cardCount }).map((_, i) => (
+        {/* Hidden influences */}
+        {Array.from({ length: player.influenceCount }).map((_, i) => (
           <div
             key={i}
             className="flex h-11 w-8 items-center justify-center rounded-sm border border-neon-red-dim bg-surface-light"
           >
             <span className="font-mono text-xs text-text-muted">?</span>
+          </div>
+        ))}
+
+        {/* Revealed influences */}
+        {player.revealedInfluences.map((role, i) => (
+          <div
+            key={`revealed-${i}`}
+            className="flex h-11 w-8 items-center justify-center rounded-sm border border-text-muted/30 bg-surface opacity-50"
+          >
+            <span className="font-mono text-[8px] text-text-muted line-through">
+              {ROLE_DISPLAY[role].substring(0, 3)}
+            </span>
           </div>
         ))}
       </div>

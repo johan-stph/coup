@@ -1,16 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { auth } from '~/auth/firebase';
 import { API_URL } from '~/config/environment';
-
-interface ActionEvent {
-  uid: string;
-  userName: string;
-  action: string;
-}
+import type { GameState } from '~/types/game';
 
 interface UseGameSSEOptions {
   gameCode: string;
-  onAction: (event: ActionEvent) => void;
+  onGameStateUpdate: (state: GameState) => void;
 }
 
 interface UseGameSSEResult {
@@ -20,17 +15,17 @@ interface UseGameSSEResult {
 
 export function useGameSSE({
   gameCode,
-  onAction,
+  onGameStateUpdate,
 }: UseGameSSEOptions): UseGameSSEResult {
   const [connected, setConnected] = useState(false);
   const esRef = useRef<EventSource | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
-  const onActionRef = useRef(onAction);
+  const onGameStateUpdateRef = useRef(onGameStateUpdate);
 
   // Keep callback ref fresh without causing reconnects
   useEffect(() => {
-    onActionRef.current = onAction;
+    onGameStateUpdateRef.current = onGameStateUpdate;
   });
 
   useEffect(() => {
@@ -61,13 +56,23 @@ export function useGameSSE({
       const es = new EventSource(url);
       esRef.current = es;
 
-      // No-op listener to silence the initial state event
-      es.addEventListener('player_joined', () => {});
-
-      es.addEventListener('action_performed', (event) => {
+      // Handle game started event (initial state)
+      es.addEventListener('game_started', (event) => {
         if (!mountedRef.current) return;
-        const data: ActionEvent = JSON.parse(event.data);
-        onActionRef.current(data);
+        const data: GameState = JSON.parse(event.data);
+        onGameStateUpdateRef.current(data);
+      });
+
+      // Handle game state updates
+      es.addEventListener('game_state_updated', (event) => {
+        if (!mountedRef.current) return;
+        const data: GameState = JSON.parse(event.data);
+        onGameStateUpdateRef.current(data);
+      });
+
+      // Legacy player_joined event (for lobby state)
+      es.addEventListener('player_joined', () => {
+        // No-op, game hasn't started yet
       });
 
       es.onopen = () => {
