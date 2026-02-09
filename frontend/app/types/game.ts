@@ -43,6 +43,15 @@ export interface PendingBlock {
   respondedPlayers: string[];
 }
 
+export interface PendingInfluenceLoss {
+  playerUid: string;
+  reason:
+    | 'challenge_failed'
+    | 'challenge_succeeded'
+    | 'assassinated'
+    | 'couped';
+}
+
 export interface ActionHistoryEntry {
   type: 'action' | 'challenge' | 'block' | 'resolve';
   actorUid: string;
@@ -67,6 +76,7 @@ export interface GameState {
   playerStates?: PlayerState[];
   pendingAction?: PendingAction;
   pendingBlock?: PendingBlock;
+  pendingInfluenceLoss?: PendingInfluenceLoss;
   actionHistory?: ActionHistoryEntry[];
 }
 

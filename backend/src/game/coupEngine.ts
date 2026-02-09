@@ -366,10 +366,14 @@ export function processChallenge(game: IGame, challengerUid: string): void {
         game.deck = shuffleArray(game.deck);
       }
 
-      // Resolve the action
-      resolveAction(game, action.type, action.actorUid, action.targetUid);
-      game.pendingAction = undefined;
-      advanceTurn(game);
+      // Challenger must lose an influence before action resolves
+      // Move to resolve phase and wait for challenger to choose which influence to lose
+      game.turnPhase = 'resolve';
+      game.pendingAction = action; // Keep the pending action to resolve after influence loss
+      game.pendingInfluenceLoss = {
+        playerUid: challengerUid,
+        reason: 'challenge_failed',
+      };
     } else {
       // Challenge succeeded - actor loses influence
       addActionHistory(game, {
@@ -385,8 +389,13 @@ export function processChallenge(game: IGame, challengerUid: string): void {
       // Refund the cost if any
       actor.coins += ACTION_METADATA[action.type].cost;
 
-      game.pendingAction = undefined;
-      advanceTurn(game);
+      // Move to resolve phase for actor to choose which influence to lose
+      game.turnPhase = 'resolve';
+      game.pendingAction = undefined; // Action is cancelled, don't resolve it
+      game.pendingInfluenceLoss = {
+        playerUid: action.actorUid,
+        reason: 'challenge_succeeded',
+      };
     }
   }
   // Challenging a block
@@ -432,9 +441,14 @@ export function processChallenge(game: IGame, challengerUid: string): void {
         description: `${getPlayerName(game, block.blockerUid)} blocked the action`,
       });
 
-      game.pendingAction = undefined;
+      // Challenger must lose an influence, then the action is blocked (no resolution)
+      game.turnPhase = 'resolve';
+      game.pendingAction = undefined; // Block succeeded, so no action to resolve
       game.pendingBlock = undefined;
-      advanceTurn(game);
+      game.pendingInfluenceLoss = {
+        playerUid: challengerUid,
+        reason: 'challenge_failed',
+      };
     } else {
       // Challenge succeeded - blocker loses influence, action goes through
       addActionHistory(game, {
@@ -446,19 +460,14 @@ export function processChallenge(game: IGame, challengerUid: string): void {
         description: `${getPlayerName(game, challengerUid)} successfully challenged block by ${getPlayerName(game, block.blockerUid)}`,
       });
 
-      // Original action resolves
-      if (originalAction) {
-        resolveAction(
-          game,
-          originalAction.type,
-          originalAction.actorUid,
-          originalAction.targetUid
-        );
-      }
-
-      game.pendingAction = undefined;
+      // Blocker must lose an influence, then original action will resolve
+      game.turnPhase = 'resolve';
+      game.pendingAction = originalAction; // Keep the action to resolve after influence loss
       game.pendingBlock = undefined;
-      advanceTurn(game);
+      game.pendingInfluenceLoss = {
+        playerUid: block.blockerUid,
+        reason: 'challenge_succeeded',
+      };
     }
   }
 }
@@ -613,6 +622,18 @@ export function loseInfluence(
 ): void {
   const player = getPlayerState(game, playerUid);
 
+  // Verify this player should be losing an influence
+  if (
+    game.pendingInfluenceLoss &&
+    game.pendingInfluenceLoss.playerUid !== playerUid
+  ) {
+    throw new AppError(
+      'Wrong player attempting to lose influence',
+      BAD_REQUEST,
+      ''
+    );
+  }
+
   const roleIndex = player.influences.indexOf(roleToLose);
   if (roleIndex === -1) {
     throw new AppError('Player does not have that influence', BAD_REQUEST, '');
@@ -631,6 +652,9 @@ export function loseInfluence(
     description: `${getPlayerName(game, playerUid)} lost influence (${roleToLose})`,
   });
 
+  // Clear pending influence loss
+  game.pendingInfluenceLoss = undefined;
+
   // Check if game is over
   const gameOver = checkGameOver(game);
   if (gameOver.isOver) {
@@ -642,6 +666,35 @@ export function loseInfluence(
       timestamp: new Date(),
       description: `${getPlayerName(game, gameOver.winnerId!)} wins the game!`,
     });
+    return; // Game ended, don't continue
+  }
+
+  // If there's a pending action, resolve it now
+  if (game.pendingAction) {
+    const action = game.pendingAction;
+    resolveAction(game, action.type, action.actorUid, action.targetUid);
+
+    // Check if the resolved action requires the target to lose an influence
+    const metadata = ACTION_METADATA[action.type];
+    if (
+      (action.type === 'assassinate' || action.type === 'coup') &&
+      action.targetUid
+    ) {
+      // Stay in resolve phase for target to lose influence
+      game.turnPhase = 'resolve';
+      game.pendingAction = undefined;
+      game.pendingInfluenceLoss = {
+        playerUid: action.targetUid,
+        reason: action.type === 'assassinate' ? 'assassinated' : 'couped',
+      };
+    } else {
+      // Action fully resolved, advance turn
+      game.pendingAction = undefined;
+      advanceTurn(game);
+    }
+  } else {
+    // No pending action, advance turn
+    advanceTurn(game);
   }
 }
 

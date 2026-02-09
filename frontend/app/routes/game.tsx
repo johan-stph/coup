@@ -7,12 +7,14 @@ import EventLog from '~/components/game/EventLog';
 import ActionBar from '~/components/game/ActionBar';
 import ActionAnnouncement from '~/components/game/ActionAnnouncement';
 import ActionResponsePanel from '~/components/game/ActionResponsePanel';
+import InfluenceLossPanel from '~/components/game/InfluenceLossPanel';
 import { useGameSSE } from '~/hooks/useGameSSE';
 import {
   performGameAction,
   challengeAction,
   blockAction,
   passResponse,
+  loseInfluence,
   getGameState,
 } from '~/lib/gameActions';
 import type { GameState, GameAction, Role, BlockAction } from '~/types/game';
@@ -144,6 +146,15 @@ export default function Game() {
     }
   }
 
+  async function handleLoseInfluence(role: Role) {
+    if (!state?.gameCode) return;
+    try {
+      await loseInfluence(state.gameCode, role);
+    } catch (error) {
+      console.error('Failed to lose influence:', error);
+    }
+  }
+
   if (!localPlayerState) {
     return (
       <div className="bg-radial-glow scanlines flex min-h-screen flex-col items-center justify-center text-white">
@@ -231,6 +242,18 @@ export default function Game() {
         onPass={handlePass}
         hasResponded={hasResponded}
       />
+
+      {/* Influence loss panel (resolve phase) */}
+      {gameState.turnPhase === 'resolve' &&
+        gameState.pendingInfluenceLoss &&
+        localPlayerState.influences && (
+          <InfluenceLossPanel
+            pendingInfluenceLoss={gameState.pendingInfluenceLoss}
+            currentPlayerUid={user?.uid || ''}
+            influences={localPlayerState.influences}
+            onLoseInfluence={handleLoseInfluence}
+          />
+        )}
 
       {/* Action announcement overlay */}
       {announcement && (

@@ -49,6 +49,15 @@ export interface ActionHistoryEntry {
   description: string;
 }
 
+export interface PendingInfluenceLoss {
+  playerUid: string;
+  reason:
+    | 'challenge_failed'
+    | 'challenge_succeeded'
+    | 'assassinated'
+    | 'couped';
+}
+
 export interface IGame extends Document {
   name: string;
   gameCode: string;
@@ -63,6 +72,7 @@ export interface IGame extends Document {
   turnPhase?: TurnPhase;
   pendingAction?: PendingAction;
   pendingBlock?: PendingBlock;
+  pendingInfluenceLoss?: PendingInfluenceLoss;
   actionHistory?: ActionHistoryEntry[];
 
   createdAt: Date;
@@ -121,6 +131,9 @@ const gameSchema = new Schema<IGame>(
       type: Schema.Types.Mixed,
     },
     pendingBlock: {
+      type: Schema.Types.Mixed,
+    },
+    pendingInfluenceLoss: {
       type: Schema.Types.Mixed,
     },
     actionHistory: {
