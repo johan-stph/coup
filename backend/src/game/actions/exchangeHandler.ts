@@ -1,6 +1,5 @@
 import GameState from '../../db/models/GameState.model';
 import { GameStateHelper } from '../gameState.schema';
-import { CardType } from '../../constants/cardTypes';
 import { broadcast } from '../../sse/lobbySSEManager';
 import { shuffleDeck } from '../initialization/gameInitializer';
 import { advanceTurn } from './actionHandler';

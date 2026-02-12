@@ -6,7 +6,6 @@ import {
   validateChallengeTiming,
   validateCanBlock,
   validateBlockingCard,
-  validateNotActor,
   validatePlayerAlive,
 } from '../validation/validators';
 import { broadcast } from '../../sse/lobbySSEManager';

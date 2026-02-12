@@ -60,7 +60,7 @@ describe('Game Initialization', () => {
         ],
       } as unknown as IGame;
 
-      const { players, deck } = initializeGameState(mockGame);
+      const { players } = initializeGameState(mockGame);
 
       expect(players).toHaveLength(3);
       expect(players[0].cards).toHaveLength(2);

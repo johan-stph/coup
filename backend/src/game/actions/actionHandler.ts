@@ -1,7 +1,6 @@
 import GameState, {
   IGameState,
   ActionType,
-  GameStatePlayer,
 } from '../../db/models/GameState.model';
 import { GameStateHelper } from '../gameState.schema';
 import { getActionConfig } from '../config/actionConfigs';

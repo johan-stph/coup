@@ -3,7 +3,7 @@ import { broadcast } from '../../sse/lobbySSEManager';
 import { executeAction, advanceTurn } from './actionHandler';
 
 // Store active timeout handles to prevent duplicate scheduling
-const activeTimeouts = new Map<string, NodeJS.Timeout>();
+const activeTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
 /**
  * Schedule automatic resolution of a pending action
