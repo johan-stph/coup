@@ -78,3 +78,21 @@ export function broadcast(
     client.res.write(message);
   }
 }
+
+export function broadcastToPlayer(
+  gameCode: string,
+  uid: string,
+  event: string,
+  data: unknown
+): void {
+  const clients = lobbies.get(gameCode);
+  if (!clients) {
+    return;
+  }
+
+  const client = clients.find((c) => c.uid === uid);
+  if (client) {
+    const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+    client.res.write(message);
+  }
+}
