@@ -69,5 +69,9 @@ export const FIREBASE_WEB_API_KEY = getEnv('FIREBASE_WEB_API_KEY', '');
 
 /*
  * MONGODB ENVIROMENT VARIABLES
+ * In test mode, use dummy value since tests use MongoDB Memory Server
  */
-export const MONGO_URI = getEnv('MONGO_URI');
+export const MONGO_URI = getEnv(
+  'MONGO_URI',
+  isTestEnv ? 'mongodb://localhost:27017/test' : undefined
+);
