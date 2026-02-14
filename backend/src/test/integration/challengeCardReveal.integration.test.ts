@@ -1,0 +1,752 @@
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import request from 'supertest';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import mongoose from 'mongoose';
+import { createTestApp } from '../testApp';
+import User from '../../db/models/User.model';
+import Game from '../../db/models/Game.model';
+import GameState from '../../db/models/GameState.model';
+
+describe('Challenge Card Reveal Integration Tests', () => {
+  let mongoServer: MongoMemoryServer;
+  const app = createTestApp();
+
+  const player1 = 'test-player-1';
+  const player2 = 'test-player-2';
+  const player3 = 'test-player-3';
+
+  beforeAll(async () => {
+    mongoServer = await MongoMemoryServer.create();
+    const mongoUri = mongoServer.getUri();
+    await mongoose.connect(mongoUri);
+  });
+
+  afterAll(async () => {
+    await mongoose.disconnect();
+    await mongoServer.stop();
+  });
+
+  beforeEach(async () => {
+    await User.deleteMany({});
+    await Game.deleteMany({});
+    await GameState.deleteMany({});
+
+    await User.create({
+      _id: player1,
+      userName: 'Alice',
+      email: 'alice@test.com',
+    });
+    await User.create({
+      _id: player2,
+      userName: 'Bob',
+      email: 'bob@test.com',
+    });
+    await User.create({
+      _id: player3,
+      userName: 'Charlie',
+      email: 'charlie@test.com',
+    });
+  });
+
+  describe('Action Challenge - Actor Loses', () => {
+    it('should require actor to choose card when challenged and loses', async () => {
+      // Create and start game
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 1 to NOT have Duke
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'assassin', revealed: false },
+              { card: 'captain', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Player 1 declares tax (claims Duke)
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'tax' })
+        .expect(200);
+
+      // Player 2 challenges
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ isBlockChallenge: false })
+        .expect(200);
+
+      // Verify state: waiting for player 1 to reveal card
+      let gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.waitingForCardReveal).toBeTruthy();
+      expect(gameState!.waitingForCardReveal!.playerUid).toBe(player1);
+      expect(gameState!.waitingForCardReveal!.reason).toBe('challenge_lost');
+
+      // Player 1 reveals first card
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ cardIndex: 0 })
+        .expect(200);
+
+      // Verify outcome: card revealed, action cancelled, turn advanced
+      gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.players[0].cards[0].revealed).toBe(true);
+      expect(gameState!.players[0].coins).toBe(2); // No coins gained
+      expect(gameState!.waitingForCardReveal).toBeFalsy();
+      expect(gameState!.pendingAction).toBeFalsy();
+      expect(gameState!.currentPlayerIndex).toBe(1);
+    });
+
+    it('should allow actor to choose which card to reveal', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 1 to have specific cards
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'assassin', revealed: false },
+              { card: 'captain', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Player 1 declares tax, player 2 challenges
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'tax' });
+
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ isBlockChallenge: false });
+
+      // Player 1 chooses to reveal second card instead
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ cardIndex: 1 })
+        .expect(200);
+
+      const gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.players[0].cards[0].revealed).toBe(false);
+      expect(gameState!.players[0].cards[1].revealed).toBe(true);
+      expect(gameState!.players[0].cards[1].card).toBe('captain');
+    });
+  });
+
+  describe('Action Challenge - Challenger Loses', () => {
+    it('should require challenger to choose card when loses', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 1 to HAVE Duke
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'duke', revealed: false },
+              { card: 'captain', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Player 1 declares tax (claims Duke)
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'tax' });
+
+      // Player 2 challenges (will lose)
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ isBlockChallenge: false });
+
+      // Verify state: waiting for player 2 to reveal card
+      let gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.waitingForCardReveal).toBeTruthy();
+      expect(gameState!.waitingForCardReveal!.playerUid).toBe(player2);
+      expect(gameState!.waitingForCardReveal!.reason).toBe('challenge_lost');
+
+      // Player 2 reveals card
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ cardIndex: 0 })
+        .expect(200);
+
+      // Verify outcome: card revealed, action executed (tax), turn advanced
+      gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.players[1].cards[0].revealed).toBe(true);
+      expect(gameState!.players[0].coins).toBe(5); // 2 + 3 from tax
+      expect(gameState!.waitingForCardReveal).toBeFalsy();
+      expect(gameState!.pendingAction).toBeFalsy();
+      expect(gameState!.currentPlayerIndex).toBe(1);
+    });
+
+    it('should move to block phase when challenger loses on blockable action', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Give player1 3+ coins and Captain card
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        {
+          $set: {
+            'players.$.coins': 3,
+            'players.$.cards': [
+              { card: 'captain', revealed: false },
+              { card: 'duke', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Player 1 declares steal (claims Captain)
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'steal', targetUid: player2 });
+
+      // Player 2 challenges (will lose because player1 has Captain)
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ isBlockChallenge: false });
+
+      // Player 2 reveals card
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ cardIndex: 0 });
+
+      // Verify state: moved to awaiting_block phase
+      const gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.players[1].cards[0].revealed).toBe(true);
+      expect(gameState!.pendingAction).toBeTruthy();
+      expect(gameState!.pendingAction!.phase).toBe('awaiting_block');
+      expect(gameState!.actionResolvesAt).toBeTruthy();
+    });
+  });
+
+  describe('Block Challenge - Blocker Loses', () => {
+    it('should require blocker to choose card when loses block challenge', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player3}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 2 to NOT have Duke
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player2 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'contessa', revealed: false },
+              { card: 'ambassador', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Player 1 declares foreign_aid
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'foreign_aid' });
+
+      // Player 2 blocks with Duke (doesn't have it)
+      await request(app)
+        .post(`/api/games/block/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ blockingCard: 'duke' });
+
+      // Player 3 challenges the block
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player3}`)
+        .send({ isBlockChallenge: true });
+
+      // Verify state: waiting for player 2 to reveal card
+      let gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.waitingForCardReveal).toBeTruthy();
+      expect(gameState!.waitingForCardReveal!.playerUid).toBe(player2);
+      expect(gameState!.waitingForCardReveal!.reason).toBe('challenge_lost');
+
+      // Player 2 reveals card
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ cardIndex: 0 })
+        .expect(200);
+
+      // Verify outcome: card revealed, action executed (foreign_aid), turn advanced
+      gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.players[1].cards[0].revealed).toBe(true);
+      expect(gameState!.players[0].coins).toBe(4); // 2 + 2 from foreign_aid
+      expect(gameState!.waitingForCardReveal).toBeFalsy();
+      expect(gameState!.pendingAction).toBeFalsy();
+      expect(gameState!.currentPlayerIndex).toBe(1);
+    });
+  });
+
+  describe('Block Challenge - Block Challenger Loses', () => {
+    it('should require block challenger to choose card when loses', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player3}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 2 to HAVE Duke
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player2 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'duke', revealed: false },
+              { card: 'ambassador', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Player 1 declares foreign_aid
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'foreign_aid' });
+
+      // Player 2 blocks with Duke (has it)
+      await request(app)
+        .post(`/api/games/block/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ blockingCard: 'duke' });
+
+      // Player 3 challenges the block (will lose)
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player3}`)
+        .send({ isBlockChallenge: true });
+
+      // Verify state: waiting for player 3 to reveal card
+      let gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.waitingForCardReveal).toBeTruthy();
+      expect(gameState!.waitingForCardReveal!.playerUid).toBe(player3);
+      expect(gameState!.waitingForCardReveal!.reason).toBe('challenge_lost');
+
+      // Player 3 reveals card
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player3}`)
+        .send({ cardIndex: 1 })
+        .expect(200);
+
+      // Verify outcome: card revealed, action blocked (no coins), turn advanced
+      gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.players[2].cards[1].revealed).toBe(true);
+      expect(gameState!.players[0].coins).toBe(2); // No change, blocked
+      expect(gameState!.waitingForCardReveal).toBeFalsy();
+      expect(gameState!.pendingAction).toBeFalsy();
+      expect(gameState!.currentPlayerIndex).toBe(1);
+    });
+  });
+
+  describe('Player Elimination', () => {
+    it('should eliminate player when revealing last card', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 1 to have one card already revealed
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'assassin', revealed: true },
+              { card: 'captain', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Player 1 declares tax, player 2 challenges
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'tax' });
+
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ isBlockChallenge: false });
+
+      // Player 1 reveals last card
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ cardIndex: 1 })
+        .expect(200);
+
+      const gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.players[0].cards[0].revealed).toBe(true);
+      expect(gameState!.players[0].cards[1].revealed).toBe(true);
+    });
+  });
+
+  describe('Error Cases', () => {
+    it('should reject reveal when not waiting for card reveal', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Try to reveal card without any pending card reveal
+      const response = await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ cardIndex: 0 });
+
+      expect(response.status).toBe(409);
+      expect(response.body.error).toBe('Not waiting for card reveal');
+    });
+
+    it('should reject reveal from wrong player', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 1 to NOT have Duke
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'assassin', revealed: false },
+              { card: 'captain', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Player 1 declares tax, player 2 challenges
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'tax' });
+
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ isBlockChallenge: false });
+
+      // Verify player 1 should reveal
+      const gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.waitingForCardReveal!.playerUid).toBe(player1);
+
+      // Player 2 tries to reveal card (but it's player 1's turn)
+      const response = await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ cardIndex: 0 });
+
+      expect(response.status).toBe(403);
+      expect(response.body.error).toBe('Not your turn to reveal');
+    });
+
+    it('should reject invalid card index', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 1 to NOT have Duke
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'assassin', revealed: false },
+              { card: 'captain', revealed: false },
+            ],
+          },
+        }
+      );
+
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'tax' });
+
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ isBlockChallenge: false });
+
+      // Try with invalid card index (out of bounds - caught by Zod validation)
+      const response = await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ cardIndex: 5 });
+
+      expect(response.status).toBe(400);
+      // Zod returns error as an array of issues
+      expect(Array.isArray(response.body.error)).toBe(true);
+    });
+
+    it('should reject revealing already revealed card', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 1 to have one revealed card and NOT have Duke
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'assassin', revealed: true },
+              { card: 'captain', revealed: false },
+            ],
+          },
+        }
+      );
+
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'tax' });
+
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ isBlockChallenge: false });
+
+      // Try to reveal already revealed card
+      const response = await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ cardIndex: 0 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Card already revealed');
+    });
+  });
+
+  describe('Assassination Card Reveal', () => {
+    it('should still work for assassination (existing functionality)', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Give player 1 enough coins for assassination
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        { $set: { 'players.$.coins': 3 } }
+      );
+
+      // Player 1 assassinates player 2
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'assassinate', targetUid: player2 });
+
+      // Wait for challenge and block windows to auto-resolve (8s + 8s = 16s)
+      // For testing, we can manually trigger resolution by updating the resolves time
+      await GameState.updateOne(
+        { gameCode },
+        { $set: { actionResolvesAt: new Date(Date.now() - 1000) } }
+      );
+
+      // Import and call auto-resolution
+      const { autoResolveAction } = await import(
+        '../../game/actions/resolutionHandler'
+      );
+
+      // Resolve challenge window
+      await autoResolveAction(gameCode);
+
+      // Check if moved to block phase
+      let gameState = await GameState.findOne({ gameCode });
+      if (gameState!.pendingAction?.phase === 'awaiting_block') {
+        // Update resolve time and resolve block window
+        await GameState.updateOne(
+          { gameCode },
+          { $set: { actionResolvesAt: new Date(Date.now() - 1000) } }
+        );
+        await autoResolveAction(gameCode);
+      }
+
+      // Now check that waiting for card reveal
+      gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.waitingForCardReveal).toBeTruthy();
+      expect(gameState!.waitingForCardReveal!.playerUid).toBe(player2);
+      expect(gameState!.waitingForCardReveal!.reason).toBe('assassinated');
+
+      // Player 2 reveals card
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ cardIndex: 0 })
+        .expect(200);
+
+      gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.players[1].cards[0].revealed).toBe(true);
+      expect(gameState!.waitingForCardReveal).toBeFalsy();
+      expect(gameState!.currentPlayerIndex).toBe(1);
+    });
+  });
+});

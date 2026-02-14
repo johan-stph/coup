@@ -7,6 +7,7 @@ import {
   validateCanChallenge,
   validateNotActor,
   validatePlayerAlive,
+  ValidationError,
 } from '../validation/validators';
 import { broadcast } from '../../sse/lobbySSEManager';
 import { shuffleDeck } from '../initialization/gameInitializer';
@@ -61,43 +62,22 @@ export async function processChallenge(
     );
 
     if (result.challengeSucceeded) {
-      // Block failed, execute the original action
+      // Block failed, execute the original action after card reveal
       broadcast(gameCode, 'challenge_succeeded', {
         challengerUid,
         loserUid: blockingPlayerUid,
       });
-
-      await executeAction(
-        gameState,
-        gameState.pendingAction!.actionType,
-        gameState.pendingAction!.actorUid,
-        gameState.pendingAction!.targetUid
-      );
-
-      if (!gameState.waitingForCardReveal && !gameState.waitingForExchange) {
-        await advanceTurn(gameState);
-      }
-
-      await gameState.save();
-
-      broadcast(gameCode, 'action_completed', {
-        actorUid: gameState.pendingAction!.actorUid,
-        action: gameState.pendingAction!.actionType,
-      });
     } else {
-      // Block succeeded, action is blocked
+      // Block succeeded, action is blocked after card reveal
       broadcast(gameCode, 'challenge_failed', {
         challengerUid,
         loserUid: challengerUid,
       });
-
-      broadcast(gameCode, 'action_blocked', {
-        blockingPlayer: blockingPlayerUid,
-      });
-
-      await advanceTurn(gameState);
-      await gameState.save();
     }
+
+    // Save state and wait for card reveal
+    // The continuation will be handled in revealCard()
+    await gameState.save();
   } else {
     // Challenge the action
     const pendingAction = gameState.pendingAction!;
@@ -122,59 +102,22 @@ export async function processChallenge(
     );
 
     if (result.challengeSucceeded) {
-      // Action cancelled
+      // Action cancelled after card reveal
       broadcast(gameCode, 'challenge_succeeded', {
         challengerUid,
         loserUid: actorUid,
       });
-
-      broadcast(gameCode, 'action_cancelled', {
-        action: pendingAction.actionType,
-      });
-
-      await advanceTurn(gameState);
-      await gameState.save();
     } else {
-      // Action continues
+      // Action continues after card reveal
       broadcast(gameCode, 'challenge_failed', {
         challengerUid,
         loserUid: challengerUid,
       });
-
-      // Move to block phase if blockable
-      if (pendingAction.canBeBlocked) {
-        pendingAction.phase = 'awaiting_block';
-        gameState.actionResolvesAt = new Date(Date.now() + BLOCK_WINDOW_MS);
-
-        await gameState.save();
-
-        broadcast(gameCode, 'block_window_open', {
-          action: pendingAction.actionType,
-          resolvesAt: gameState.actionResolvesAt,
-        });
-
-        scheduleAutoResolution(gameCode, BLOCK_WINDOW_MS);
-      } else {
-        // Execute action
-        await executeAction(
-          gameState,
-          pendingAction.actionType,
-          pendingAction.actorUid,
-          pendingAction.targetUid
-        );
-
-        if (!gameState.waitingForCardReveal && !gameState.waitingForExchange) {
-          await advanceTurn(gameState);
-        }
-
-        await gameState.save();
-
-        broadcast(gameCode, 'action_completed', {
-          actorUid: pendingAction.actorUid,
-          action: pendingAction.actionType,
-        });
-      }
     }
+
+    // Save state and wait for card reveal
+    // The continuation will be handled in revealCard()
+    await gameState.save();
   }
 }
 
@@ -211,13 +154,19 @@ async function resolveChallenge(
       reason: 'successful_defense',
     });
 
-    // 2. Challenger loses a card
-    await loseCard(gameState, challengerUid);
+    // 2. Challenger must choose which card to reveal
+    gameState.waitingForCardReveal = {
+      playerUid: challengerUid,
+      reason: 'challenge_lost',
+    };
 
     return { challengeSucceeded: false };
   } else {
     // Challenge SUCCEEDED - challenged player doesn't have the card
-    await loseCard(gameState, challengedUid);
+    gameState.waitingForCardReveal = {
+      playerUid: challengedUid,
+      reason: 'challenge_lost',
+    };
 
     return { challengeSucceeded: true };
   }
@@ -267,15 +216,15 @@ export async function revealCard(
 ): Promise<void> {
   const gameState = await GameState.findOne({ gameCode });
   if (!gameState) {
-    throw new Error('Game state not found');
+    throw new ValidationError('Game state not found', 404);
   }
 
   if (!gameState.waitingForCardReveal) {
-    throw new Error('Not waiting for card reveal');
+    throw new ValidationError('Not waiting for card reveal', 409);
   }
 
   if (gameState.waitingForCardReveal.playerUid !== playerUid) {
-    throw new Error('Not your turn to reveal');
+    throw new ValidationError('Not your turn to reveal', 403);
   }
 
   const helper = new GameStateHelper(gameState);
@@ -283,12 +232,12 @@ export async function revealCard(
 
   // Validate card index
   if (cardIndex < 0 || cardIndex >= player.cards.length) {
-    throw new Error('Invalid card index');
+    throw new ValidationError('Invalid card index', 400);
   }
 
   const card = player.cards[cardIndex];
   if (card.revealed) {
-    throw new Error('Card already revealed');
+    throw new ValidationError('Card already revealed', 400);
   }
 
   // Reveal the card
@@ -310,10 +259,96 @@ export async function revealCard(
     });
   }
 
+  const revealReason = gameState.waitingForCardReveal.reason;
+
   // Clear waiting state
   gameState.waitingForCardReveal = undefined;
 
-  // Advance turn
-  await advanceTurn(gameState);
+  // Handle continuation based on reason
+  if (revealReason === 'challenge_lost' && gameState.pendingAction) {
+    // Determine what happened based on who lost the challenge
+    const pendingAction = gameState.pendingAction;
+    const loserIsActor = playerUid === pendingAction.actorUid;
+    const loserIsBlocker =
+      pendingAction.blockingPlayerUid &&
+      playerUid === pendingAction.blockingPlayerUid;
+
+    if (loserIsActor) {
+      // Actor lost challenge - action is cancelled
+      broadcast(gameCode, 'action_cancelled', {
+        action: pendingAction.actionType,
+      });
+
+      await advanceTurn(gameState);
+    } else if (loserIsBlocker) {
+      // Blocker lost challenge - execute the original action
+      await executeAction(
+        gameState,
+        pendingAction.actionType,
+        pendingAction.actorUid,
+        pendingAction.targetUid
+      );
+
+      if (!gameState.waitingForCardReveal && !gameState.waitingForExchange) {
+        await advanceTurn(gameState);
+      }
+
+      broadcast(gameCode, 'action_completed', {
+        actorUid: pendingAction.actorUid,
+        action: pendingAction.actionType,
+      });
+    } else {
+      // Challenger lost challenge - action continues
+      if (pendingAction.blockingPlayerUid) {
+        // This was a block challenge that failed - block succeeds
+        broadcast(gameCode, 'action_blocked', {
+          blockingPlayer: pendingAction.blockingPlayerUid,
+        });
+
+        await advanceTurn(gameState);
+      } else {
+        // This was an action challenge that failed - move to block phase or execute
+        if (pendingAction.canBeBlocked) {
+          pendingAction.phase = 'awaiting_block';
+          const BLOCK_WINDOW_MS = 8000;
+          gameState.actionResolvesAt = new Date(Date.now() + BLOCK_WINDOW_MS);
+
+          await gameState.save();
+
+          broadcast(gameCode, 'block_window_open', {
+            action: pendingAction.actionType,
+            resolvesAt: gameState.actionResolvesAt,
+          });
+
+          scheduleAutoResolution(gameCode, BLOCK_WINDOW_MS);
+          return; // Don't save again or advance turn
+        } else {
+          // Execute action
+          await executeAction(
+            gameState,
+            pendingAction.actionType,
+            pendingAction.actorUid,
+            pendingAction.targetUid
+          );
+
+          if (
+            !gameState.waitingForCardReveal &&
+            !gameState.waitingForExchange
+          ) {
+            await advanceTurn(gameState);
+          }
+
+          broadcast(gameCode, 'action_completed', {
+            actorUid: pendingAction.actorUid,
+            action: pendingAction.actionType,
+          });
+        }
+      }
+    }
+  } else {
+    // For couped/assassinated, just advance turn
+    await advanceTurn(gameState);
+  }
+
   await gameState.save();
 }

@@ -167,9 +167,6 @@ describe('Game Engine Integration Tests', () => {
         .send({ action: 'foreign_aid' })
         .expect(200);
 
-      // Wait for action to resolve (no challenges/blocks)
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
       const gameState = await GameState.findOne({ gameCode });
       expect(gameState!.pendingAction).toBeTruthy();
       expect(gameState!.pendingAction!.actionType).toBe('foreign_aid');
@@ -407,9 +404,6 @@ describe('Game Engine Integration Tests', () => {
         .set('Authorization', `Bearer ${player1}`)
         .send({ action: 'foreign_aid' });
 
-      // Wait for challenge window
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
       // Player 2 blocks with Duke
       await request(app)
         .post(`/api/games/block/${gameCode}`)
@@ -429,8 +423,6 @@ describe('Game Engine Integration Tests', () => {
         .post(`/api/games/action/${gameCode}`)
         .set('Authorization', `Bearer ${player1}`)
         .send({ action: 'foreign_aid' });
-
-      await new Promise((resolve) => setTimeout(resolve, 50));
 
       // Player 2 tries to block with Contessa (invalid for foreign_aid)
       await request(app)
