@@ -35,12 +35,27 @@ export default function LocalPlayerArea({ player }: LocalPlayerAreaProps) {
 
       {/* Center — influence cards */}
       <div className="flex gap-3">
-        {Array.from({ length: player.cardCount }).map((_, i) => (
+        {player.cards.map((cardData, i) => (
           <div key={i} className="corner-brackets">
-            <div className="flex h-22 w-16 items-center justify-center bg-surface-light">
-              <span className="font-mono text-[8px] tracking-widest text-text-muted">
-                CLASSIFIED
-              </span>
+            <div className="flex h-22 w-16 flex-col items-center justify-center bg-surface-light px-1">
+              {cardData.revealed ? (
+                <>
+                  <span className="font-mono text-[8px] tracking-widest text-text-muted line-through">
+                    {cardData.card?.toUpperCase()}
+                  </span>
+                  <span className="font-mono text-[6px] tracking-widest text-neon-red">
+                    REVEALED
+                  </span>
+                </>
+              ) : cardData.card ? (
+                <span className="font-mono text-[8px] tracking-widest text-neon-cyan">
+                  {cardData.card.toUpperCase()}
+                </span>
+              ) : (
+                <span className="font-mono text-[8px] tracking-widest text-text-muted">
+                  CLASSIFIED
+                </span>
+              )}
             </div>
           </div>
         ))}

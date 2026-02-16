@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useAuth } from '~/auth/AuthContext';
 import PlayerCard from '~/components/game/PlayerCard';
@@ -9,7 +9,7 @@ import ActionAnnouncement from '~/components/game/ActionAnnouncement';
 import { useGameSSE } from '~/hooks/useGameSSE';
 import { authFetch } from '~/lib/authFetch';
 import {
-  buildMockPlayers,
+  type GamePlayer,
   getInitialEvents,
   createActionEvent,
 } from '~/lib/gameMockData';
@@ -37,14 +37,46 @@ export default function Game() {
   const { user } = useAuth();
   const state = location.state as GameState | null;
 
-  const [players] = useState(() =>
-    state ? buildMockPlayers(state.players, user?.uid ?? '') : []
-  );
+  const [players, setPlayers] = useState<GamePlayer[]>([]);
   const [events, setEvents] = useState(() => getInitialEvents());
   const [announcement, setAnnouncement] = useState<{
     playerName: string;
     action: string;
   } | null>(null);
+
+  // Fetch game state
+  useEffect(() => {
+    async function fetchGameState() {
+      if (!gameId) return;
+
+      try {
+        const response = await authFetch(`/games/${gameId}/state`);
+        
+        if (!response.ok) {
+          console.error('Failed to fetch game state:', response.statusText);
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.players) {
+          const gamePlayers: GamePlayer[] = data.players.map((p: any) => ({
+            uid: p.uid,
+            userName: p.userName,
+            coins: p.coins,
+            cards: p.cards,
+            isLocal: p.uid === user?.uid,
+          }));
+
+          setPlayers(gamePlayers);
+        }
+      } catch (error) {
+        console.error('Failed to fetch game state:', error);
+      }
+    }
+
+    fetchGameState();
+  }, [gameId, user?.uid]);
 
   const onAction = useCallback(
     (event: { uid: string; userName: string; action: string }) => {
