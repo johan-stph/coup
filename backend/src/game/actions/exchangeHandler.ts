@@ -3,6 +3,7 @@ import { GameStateHelper } from '../gameState.schema';
 import { broadcast } from '../../sse/lobbySSEManager';
 import { shuffleDeck } from '../initialization/gameInitializer';
 import { advanceTurn } from './actionHandler';
+import { ValidationError } from '../validation/validators';
 
 /**
  * Handle Ambassador card exchange selection
@@ -14,20 +15,20 @@ export async function processExchangeCards(
 ): Promise<void> {
   const gameState = await GameState.findOne({ gameCode });
   if (!gameState) {
-    throw new Error('Game state not found');
+    throw new ValidationError('Game state not found', 404);
   }
 
   if (!gameState.waitingForExchange) {
-    throw new Error('Not in exchange phase');
+    throw new ValidationError('Not in exchange phase', 409);
   }
 
   if (gameState.waitingForExchange.playerUid !== playerUid) {
-    throw new Error('Not your turn to exchange');
+    throw new ValidationError('Not your turn to exchange', 403);
   }
 
   // Validate player chose exactly 2 cards
   if (chosenCardIndices.length !== 2) {
-    throw new Error('Must choose exactly 2 cards');
+    throw new ValidationError('Must choose exactly 2 cards', 400);
   }
 
   const helper = new GameStateHelper(gameState);
@@ -41,13 +42,13 @@ export async function processExchangeCards(
   // Validate indices
   for (const index of chosenCardIndices) {
     if (index < 0 || index >= allAvailableCards.length) {
-      throw new Error('Invalid card index');
+      throw new ValidationError('Invalid card index', 400);
     }
   }
 
   // Check for duplicates
   if (new Set(chosenCardIndices).size !== chosenCardIndices.length) {
-    throw new Error('Cannot choose the same card twice');
+    throw new ValidationError('Cannot choose the same card twice', 400);
   }
 
   // Get chosen cards
