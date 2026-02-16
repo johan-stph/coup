@@ -2,9 +2,10 @@ import type { GamePlayer } from '~/lib/gameMockData';
 
 interface LocalPlayerAreaProps {
   player: GamePlayer;
+  isMyTurn: boolean;
 }
 
-export default function LocalPlayerArea({ player }: LocalPlayerAreaProps) {
+export default function LocalPlayerArea({ player, isMyTurn }: LocalPlayerAreaProps) {
   return (
     <div className="flex items-center justify-between border-t border-surface-light bg-surface/50 px-6 py-4">
       {/* Left — operative info */}
@@ -62,13 +63,14 @@ export default function LocalPlayerArea({ player }: LocalPlayerAreaProps) {
       </div>
 
       {/* Right — turn indicator */}
-      {/* TODO: based on real turn state */}
-      <div className="flex items-center gap-2">
-        <span className="status-pulse inline-block h-2 w-2 rounded-full bg-neon-cyan" />
-        <span className="font-mono text-xs tracking-widest text-neon-cyan">
-          YOUR TURN
-        </span>
-      </div>
+      {isMyTurn && (
+        <div className="flex items-center gap-2">
+          <span className="status-pulse inline-block h-2 w-2 rounded-full bg-neon-cyan" />
+          <span className="font-mono text-xs tracking-widest text-neon-cyan">
+            YOUR TURN
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,9 @@ import LocalPlayerArea from '~/components/game/LocalPlayerArea';
 import EventLog from '~/components/game/EventLog';
 import ActionBar from '~/components/game/ActionBar';
 import ActionAnnouncement from '~/components/game/ActionAnnouncement';
+import PendingActionDisplay from '~/components/game/PendingActionDisplay';
+import RevealCardModal from '~/components/game/RevealCardModal';
+import CardRevealNotification from '~/components/game/CardRevealNotification';
 import { useGameSSE } from '~/hooks/useGameSSE';
 import { authFetch } from '~/lib/authFetch';
 import {
@@ -20,14 +23,33 @@ interface GameState {
   players: { uid: string; userName: string }[];
 }
 
+interface PendingAction {
+  actionType: string;
+  actorUid: string;
+  targetUid?: string;
+  claimedCard?: string;
+  canBeBlocked: boolean;
+  canBeChallenged: boolean;
+  blockingPlayerUid?: string;
+  blockClaimedCard?: string;
+  phase: string;
+}
+
+interface WaitingForCardReveal {
+  playerUid: string;
+  reason: 'challenge_lost' | 'couped' | 'assassinated';
+}
+
 const ACTION_TO_ENUM: Record<string, string> = {
   INCOME: 'income',
   'FOREIGN AID': 'foreign_aid',
+  TAX: 'tax',
 };
 
 const ENUM_TO_DISPLAY: Record<string, string> = {
   income: 'INCOME',
   foreign_aid: 'FOREIGN AID',
+  tax: 'TAX',
 };
 
 export default function Game() {
@@ -43,6 +65,9 @@ export default function Game() {
     playerName: string;
     action: string;
   } | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
+  const [waitingForCardReveal, setWaitingForCardReveal] = useState<WaitingForCardReveal | null>(null);
 
   // Fetch game state
   useEffect(() => {
@@ -69,6 +94,9 @@ export default function Game() {
           }));
 
           setPlayers(gamePlayers);
+          setPendingAction(data.pendingAction || null);
+          setCurrentPlayerIndex(data.currentPlayerIndex ?? 0);
+          setWaitingForCardReveal(data.waitingForCardReveal || null);
         }
       } catch (error) {
         console.error('Failed to fetch game state:', error);
@@ -76,6 +104,11 @@ export default function Game() {
     }
 
     fetchGameState();
+    
+    // Poll for state updates every 2 seconds
+    const interval = setInterval(fetchGameState, 2000);
+    
+    return () => clearInterval(interval);
   }, [gameId, user?.uid]);
 
   const onAction = useCallback(
@@ -113,6 +146,28 @@ export default function Game() {
 
   const localPlayer = players.find((p) => p.isLocal);
   const opponents = players.filter((p) => !p.isLocal);
+  const localPlayerIndex = players.findIndex((p) => p.isLocal);
+  const isMyTurn = localPlayerIndex === currentPlayerIndex;
+  
+  // Get actor and blocker names for pending action
+  const actorPlayer = pendingAction
+    ? players.find((p) => p.uid === pendingAction.actorUid)
+    : null;
+  const blockerPlayer = pendingAction?.blockingPlayerUid
+    ? players.find((p) => p.uid === pendingAction.blockingPlayerUid)
+    : null;
+  const revealingPlayer = waitingForCardReveal
+    ? players.find((p) => p.uid === waitingForCardReveal.playerUid)
+    : null;
+  const isActorOfPendingAction = pendingAction?.actorUid === user?.uid;
+  const isBlockerOfPendingAction = pendingAction?.blockingPlayerUid === user?.uid;
+
+  // Check if user can block current action
+  const canBlockForeignAid =
+    pendingAction?.canBeBlocked &&
+    pendingAction?.actionType === 'foreign_aid' &&
+    pendingAction?.actorUid !== user?.uid &&
+    pendingAction?.phase === 'awaiting_block';
 
   async function handleAction(name: string) {
     const action = ACTION_TO_ENUM[name];
@@ -122,6 +177,38 @@ export default function Game() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
+    });
+  }
+
+  async function handleBlock() {
+    await authFetch(`/games/block/${gameId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ blockingCard: 'duke' }),
+    });
+  }
+
+  async function handleChallenge() {
+    await authFetch(`/games/challenge/${gameId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isBlockChallenge: false }),
+    });
+  }
+
+  async function handleChallengeBlock() {
+    await authFetch(`/games/challenge/${gameId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isBlockChallenge: true }),
+    });
+  }
+
+  async function handleRevealCard(cardIndex: number) {
+    await authFetch(`/games/reveal-card/${gameId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cardIndex }),
     });
   }
 
@@ -150,7 +237,7 @@ export default function Game() {
           OPERATION IN PROGRESS
         </span>
         <h1 className="font-display text-xl font-bold tracking-wider text-white">
-          {state.lobbyName.toUpperCase()}
+          {state?.lobbyName?.toUpperCase() || 'COUP'}
         </h1>
       </div>
 
@@ -164,11 +251,46 @@ export default function Game() {
         </div>
 
         {/* Local player area */}
-        {localPlayer && <LocalPlayerArea player={localPlayer} />}
+        {localPlayer && <LocalPlayerArea player={localPlayer} isMyTurn={isMyTurn} />}
       </main>
 
       {/* Fixed action bar */}
-      <ActionBar onAction={handleAction} />
+      <ActionBar
+        onAction={handleAction}
+        onBlock={handleBlock}
+        canBlock={canBlockForeignAid}
+        disabled={canBlockForeignAid ? false : !isMyTurn || !!pendingAction}
+      />
+
+      {/* Pending action display */}
+      {pendingAction && actorPlayer && (
+        <PendingActionDisplay
+          pendingAction={pendingAction}
+          actorName={actorPlayer.userName}
+          blockerName={blockerPlayer?.userName}
+          isActor={isActorOfPendingAction}
+          isBlocker={isBlockerOfPendingAction}
+          onChallenge={handleChallenge}
+          onChallengeBlock={handleChallengeBlock}
+        />
+      )}
+
+      {/* Reveal card modal */}
+      {waitingForCardReveal && waitingForCardReveal.playerUid === user?.uid && localPlayer && (
+        <RevealCardModal
+          cards={localPlayer.cards}
+          reason={waitingForCardReveal.reason}
+          onReveal={handleRevealCard}
+        />
+      )}
+
+      {/* Card reveal notification for other players */}
+      {waitingForCardReveal && waitingForCardReveal.playerUid !== user?.uid && revealingPlayer && (
+        <CardRevealNotification
+          playerName={revealingPlayer.userName}
+          reason={waitingForCardReveal.reason}
+        />
+      )}
 
       {/* Action announcement overlay */}
       {announcement && (
