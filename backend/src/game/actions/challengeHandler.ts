@@ -14,8 +14,6 @@ import { shuffleDeck } from '../initialization/gameInitializer';
 import { executeAction, advanceTurn } from './actionHandler';
 import { scheduleAutoResolution } from './resolutionHandler';
 
-const BLOCK_WINDOW_MS = 8000; // 8 seconds
-
 /**
  * Handle a challenge to an action or block
  */

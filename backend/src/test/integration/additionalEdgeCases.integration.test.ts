@@ -9,7 +9,7 @@ import GameState from '../../db/models/GameState.model';
 
 /**
  * ADDITIONAL EDGE CASES
- * 
+ *
  * These tests cover edge cases that are important for robust frontend behavior
  * but were not covered in the existing test suites.
  */
@@ -78,10 +78,7 @@ describe('Additional Edge Cases for Frontend', () => {
         .set('Authorization', `Bearer ${player1}`);
 
       // Deplete the deck to only 1 card
-      await GameState.updateOne(
-        { gameCode },
-        { $set: { deck: ['duke'] } }
-      );
+      await GameState.updateOne({ gameCode }, { $set: { deck: ['duke'] } });
 
       // Player 1 tries to exchange
       await request(app)
@@ -95,7 +92,8 @@ describe('Additional Edge Cases for Frontend', () => {
         { $set: { actionResolvesAt: new Date(Date.now() - 1000) } }
       );
 
-      const { autoResolveAction } = await import('../../game/actions/resolutionHandler');
+      const { autoResolveAction } =
+        await import('../../game/actions/resolutionHandler');
       await autoResolveAction(gameCode);
 
       // Move to block phase if needed
@@ -131,10 +129,7 @@ describe('Additional Edge Cases for Frontend', () => {
         .set('Authorization', `Bearer ${player1}`);
 
       // Empty the deck
-      await GameState.updateOne(
-        { gameCode },
-        { $set: { deck: [] } }
-      );
+      await GameState.updateOne({ gameCode }, { $set: { deck: [] } });
 
       // Player 1 tries to exchange
       await request(app)
@@ -349,7 +344,8 @@ describe('Additional Edge Cases for Frontend', () => {
         { $set: { actionResolvesAt: new Date(Date.now() - 1000) } }
       );
 
-      const { autoResolveAction } = await import('../../game/actions/resolutionHandler');
+      const { autoResolveAction } =
+        await import('../../game/actions/resolutionHandler');
       await autoResolveAction(gameCode);
 
       let gameState = await GameState.findOne({ gameCode });
@@ -598,7 +594,8 @@ describe('Additional Edge Cases for Frontend', () => {
         { $set: { actionResolvesAt: new Date(Date.now() - 1000) } }
       );
 
-      const { autoResolveAction } = await import('../../game/actions/resolutionHandler');
+      const { autoResolveAction } =
+        await import('../../game/actions/resolutionHandler');
       await autoResolveAction(gameCode);
 
       // Should move to block phase
@@ -649,7 +646,8 @@ describe('Additional Edge Cases for Frontend', () => {
         { $set: { actionResolvesAt: new Date(Date.now() - 1000) } }
       );
 
-      const { autoResolveAction } = await import('../../game/actions/resolutionHandler');
+      const { autoResolveAction } =
+        await import('../../game/actions/resolutionHandler');
       await autoResolveAction(gameCode);
 
       // Action should execute immediately (no block phase for tax)
@@ -697,7 +695,9 @@ describe('Additional Edge Cases for Frontend', () => {
         .send({ chosenCardIndices: [0, 0] });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toContain('Cannot choose the same card twice');
+      expect(response.body.error).toContain(
+        'Cannot choose the same card twice'
+      );
     });
 
     it('should reject exchange with out-of-bounds indices', async () => {

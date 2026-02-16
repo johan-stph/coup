@@ -712,9 +712,8 @@ describe('Challenge Card Reveal Integration Tests', () => {
       );
 
       // Import and call auto-resolution
-      const { autoResolveAction } = await import(
-        '../../game/actions/resolutionHandler'
-      );
+      const { autoResolveAction } =
+        await import('../../game/actions/resolutionHandler');
 
       // Resolve challenge window
       await autoResolveAction(gameCode);
@@ -783,7 +782,6 @@ describe('Challenge Card Reveal Integration Tests', () => {
       // Save original deck state
       let gameState = await GameState.findOne({ gameCode });
       const originalDeckSize = gameState!.deck.length;
-      const originalCard = gameState!.players[0].cards[0].card;
 
       // Player 1 declares tax (claims Duke)
       await request(app)
@@ -799,10 +797,6 @@ describe('Challenge Card Reveal Integration Tests', () => {
 
       // Check that Duke was shuffled back and new card drawn
       gameState = await GameState.findOne({ gameCode });
-      const player1Cards = gameState!.players[0].cards;
-
-      // Player 1 should have a different card now (drew from deck after shuffling Duke back)
-      const newCard = player1Cards[0].card;
 
       // Card might be different (unless drew Duke again from shuffled deck)
       expect(gameState!.deck.length).toBe(originalDeckSize); // Same size (removed one, added one)
@@ -1224,8 +1218,6 @@ describe('Challenge Card Reveal Integration Tests', () => {
 
       gameState = await GameState.findOne({ gameCode });
       const midDeckSize = gameState!.deck.length;
-      const midRevealedCards = 1; // player2 revealed 1 card
-      const midTotalCards = midDeckSize + 4 - midRevealedCards;
 
       // Duke exchange is push+pop (net zero), so deck remains at initialDeckSize
       expect(midDeckSize).toBe(initialDeckSize); // Deck unchanged after Duke exchange

@@ -1,7 +1,16 @@
-import { describe, it, expect, beforeEach, vi, afterEach, beforeAll, afterAll } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  vi,
+  afterEach,
+  beforeAll,
+  afterAll,
+} from 'vitest';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import GameState, { IGameState } from '../../db/models/GameState.model';
+import GameState from '../../db/models/GameState.model';
 import { processChallenge, revealCard } from './challengeHandler';
 import * as lobbySSEManager from '../../sse/lobbySSEManager';
 
@@ -41,7 +50,7 @@ describe('Challenge Card Reveal', () => {
   describe('processChallenge - Action Challenge', () => {
     it('should set waitingForCardReveal when actor loses challenge', async () => {
       // Setup: Actor claims Duke but doesn't have it
-      const gameState = await GameState.create({
+      await GameState.create({
         gameCode: 'TEST123',
         players: [
           {
@@ -87,7 +96,7 @@ describe('Challenge Card Reveal', () => {
 
     it('should set waitingForCardReveal when challenger loses challenge', async () => {
       // Setup: Actor claims Duke and DOES have it
-      const gameState = await GameState.create({
+      await GameState.create({
         gameCode: 'TEST123',
         players: [
           {
@@ -135,7 +144,7 @@ describe('Challenge Card Reveal', () => {
   describe('processChallenge - Block Challenge', () => {
     it('should set waitingForCardReveal when blocker loses challenge', async () => {
       // Setup: Blocker claims Duke but doesn't have it
-      const gameState = await GameState.create({
+      await GameState.create({
         gameCode: 'TEST123',
         players: [
           {
@@ -191,7 +200,7 @@ describe('Challenge Card Reveal', () => {
 
     it('should set waitingForCardReveal when block challenger loses', async () => {
       // Setup: Blocker claims Duke and DOES have it
-      const gameState = await GameState.create({
+      await GameState.create({
         gameCode: 'TEST123',
         players: [
           {
@@ -248,7 +257,7 @@ describe('Challenge Card Reveal', () => {
 
   describe('revealCard - After Challenge Loss', () => {
     it('should cancel action and advance turn when actor loses challenge', async () => {
-      const gameState = await GameState.create({
+      await GameState.create({
         gameCode: 'TEST123',
         players: [
           {
@@ -303,7 +312,7 @@ describe('Challenge Card Reveal', () => {
     });
 
     it('should continue to block phase when challenger loses and action is blockable', async () => {
-      const gameState = await GameState.create({
+      await GameState.create({
         gameCode: 'TEST123',
         players: [
           {
@@ -358,7 +367,7 @@ describe('Challenge Card Reveal', () => {
     });
 
     it('should execute action when challenger loses and action is not blockable', async () => {
-      const gameState = await GameState.create({
+      await GameState.create({
         gameCode: 'TEST123',
         players: [
           {
@@ -414,7 +423,7 @@ describe('Challenge Card Reveal', () => {
     });
 
     it('should execute action when blocker loses block challenge', async () => {
-      const gameState = await GameState.create({
+      await GameState.create({
         gameCode: 'TEST123',
         players: [
           {
@@ -480,7 +489,7 @@ describe('Challenge Card Reveal', () => {
     });
 
     it('should block action and advance turn when block challenger loses', async () => {
-      const gameState = await GameState.create({
+      await GameState.create({
         gameCode: 'TEST123',
         players: [
           {
@@ -546,7 +555,7 @@ describe('Challenge Card Reveal', () => {
     });
 
     it('should detect player elimination when all cards revealed', async () => {
-      const gameState = await GameState.create({
+      await GameState.create({
         gameCode: 'TEST123',
         players: [
           {
@@ -602,7 +611,7 @@ describe('Challenge Card Reveal', () => {
     });
 
     it('should reject revealing already revealed card', async () => {
-      const gameState = await GameState.create({
+      await GameState.create({
         gameCode: 'TEST123',
         players: [
           {
@@ -638,7 +647,7 @@ describe('Challenge Card Reveal', () => {
     });
 
     it('should reject invalid card index', async () => {
-      const gameState = await GameState.create({
+      await GameState.create({
         gameCode: 'TEST123',
         players: [
           {
@@ -668,7 +677,7 @@ describe('Challenge Card Reveal', () => {
     });
 
     it('should reject reveal from wrong player', async () => {
-      const gameState = await GameState.create({
+      await GameState.create({
         gameCode: 'TEST123',
         players: [
           {

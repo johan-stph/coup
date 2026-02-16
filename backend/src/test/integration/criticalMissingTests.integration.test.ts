@@ -9,7 +9,7 @@ import GameState from '../../db/models/GameState.model';
 
 /**
  * CRITICAL MISSING TEST CASES
- * 
+ *
  * These tests cover scenarios that are essential for frontend functionality
  * but were not previously tested in the integration test suite.
  */
@@ -139,7 +139,7 @@ describe('Critical Missing Test Cases for Frontend', () => {
       );
 
       // Player chooses cards at indices 0 and 2 (first original card + first drawn card)
-      const response = await request(app)
+      await request(app)
         .post(`/api/games/exchange-cards/${gameCode}`)
         .set('Authorization', `Bearer ${player1}`)
         .send({ chosenCardIndices: [0, 2] })
@@ -465,7 +465,9 @@ describe('Critical Missing Test Cases for Frontend', () => {
 
       // Verify assassination was blocked (player 2 has both cards)
       const gameState = await GameState.findOne({ gameCode });
-      expect(gameState!.players[1].cards.filter((c) => !c.revealed)).toHaveLength(2);
+      expect(
+        gameState!.players[1].cards.filter((c) => !c.revealed)
+      ).toHaveLength(2);
       expect(gameState!.waitingForCardReveal).toBeUndefined();
       expect(gameState!.currentPlayerIndex).toBe(1); // Turn advanced
     });
