@@ -559,6 +559,108 @@ router.post(
   }
 );
 
+// GET /api/games/:gameCode/state
+registry.registerPath({
+  method: 'get',
+  path: '/api/games/{gameCode}/state',
+  summary: 'Get current game state',
+  security: [{ BearerAuth: [] }],
+  request: {
+    params: z.object({
+      gameCode: z.string(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Game state',
+      content: {
+        'application/json': {
+          schema: z.object({
+            gameCode: z.string(),
+            gameName: z.string(),
+            players: z.array(z.any()),
+            currentPlayerIndex: z.number(),
+            pendingAction: z.any().optional(),
+            actionResolvesAt: z.string().optional(),
+            waitingForCardReveal: z.any().optional(),
+            waitingForExchange: z.any().optional(),
+          }),
+        },
+      },
+    },
+    404: { description: 'Game not found / Game state not found' },
+    403: { description: 'You are not a player in this game' },
+  },
+});
+
+router.get('/:gameCode/state', async (req: AuthRequest, res: Response) => {
+  try {
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    const game = await Game.findOne({ gameCode });
+
+    if (!game) {
+      res.status(NOT_FOUND).json({ error: 'Game not found' });
+      return;
+    }
+
+    if (!game.players.some((p) => p.uid === uid)) {
+      res
+        .status(FORBIDDEN)
+        .json({ error: 'You are not a player in this game' });
+      return;
+    }
+
+    const gameState = await GameState.findOne({ gameCode });
+
+    if (!gameState) {
+      res.status(NOT_FOUND).json({ error: 'Game state not found' });
+      return;
+    }
+
+    // Filter players to show only own unrevealed cards
+    const players = gameState.players.map((player) => {
+      if (player.uid === uid) {
+        // Show all cards for the requesting player
+        return {
+          uid: player.uid,
+          userName: player.userName,
+          coins: player.coins,
+          cards: player.cards,
+        };
+      } else {
+        // For other players, only show revealed cards
+        return {
+          uid: player.uid,
+          userName: player.userName,
+          coins: player.coins,
+          cards: player.cards.map((c) => ({
+            card: c.revealed ? c.card : null,
+            revealed: c.revealed,
+          })),
+        };
+      }
+    });
+
+    res.json({
+      gameCode: gameState.gameCode,
+      gameName: game.name,
+      players,
+      currentPlayerIndex: gameState.currentPlayerIndex,
+      pendingAction: gameState.pendingAction,
+      actionResolvesAt: gameState.actionResolvesAt?.toISOString(),
+      waitingForCardReveal: gameState.waitingForCardReveal,
+      waitingForExchange: gameState.waitingForExchange,
+    });
+  } catch (error) {
+    logger.error('Failed to fetch game state:', error);
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Failed to fetch game state' });
+  }
+});
+
 // GET /api/games/:gameCode/events (SSE)
 router.get('/:gameCode/events', async (req: AuthRequest, res: Response) => {
   try {
