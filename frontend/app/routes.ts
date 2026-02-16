@@ -13,7 +13,7 @@ export default [
     route('lobby', 'routes/lobby.tsx'),
     route('avatar', 'routes/avatar.tsx'),
     route('challenges', 'routes/challenges.tsx'),
-    route('game', 'routes/game.tsx'),
+    route('game/:gameId', 'routes/game.tsx'),
     route('logout', 'routes/auth/Logout.tsx'),
   ]),
 ] satisfies RouteConfig;

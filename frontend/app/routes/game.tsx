@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { useAuth } from '~/auth/AuthContext';
 import PlayerCard from '~/components/game/PlayerCard';
 import LocalPlayerArea from '~/components/game/LocalPlayerArea';
@@ -33,6 +33,7 @@ const ENUM_TO_DISPLAY: Record<string, string> = {
 export default function Game() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { gameId } = useParams<{ gameId: string }>();
   const { user } = useAuth();
   const state = location.state as GameState | null;
 
@@ -58,11 +59,11 @@ export default function Game() {
   );
 
   useGameSSE({
-    gameCode: state?.gameCode ?? '',
+    gameCode: gameId ?? '',
     onAction,
   });
 
-  if (!state?.gameCode) {
+  if (!gameId) {
     return (
       <div className="bg-radial-glow scanlines flex min-h-screen flex-col items-center justify-center text-white">
         <p className="font-mono text-sm text-text-muted">
@@ -85,7 +86,7 @@ export default function Game() {
     const action = ACTION_TO_ENUM[name];
     if (!action) return;
 
-    await authFetch(`/games/action/${state!.gameCode}`, {
+    await authFetch(`/games/action/${gameId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),

@@ -77,7 +77,7 @@ export default function Lobby() {
   useEffect(() => {
     if (countdown !== 0) return;
     disconnect();
-    navigate('/game', {
+    navigate(`/game/${state.gameCode}`, {
       state: { gameCode: state.gameCode, lobbyName: state.lobbyName, players },
     });
   }, [countdown]);
