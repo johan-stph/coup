@@ -53,7 +53,7 @@ export function validateResources(
   if (player.coins >= 10 && actionType !== 'coup') {
     throw new ValidationError(
       'You must coup when you have 10 or more coins',
-      400
+      409
     );
   }
 

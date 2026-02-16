@@ -45,6 +45,17 @@ export async function processAction(
 
   // Check if action can be challenged or blocked
   if (config.canBeChallenged || config.canBeBlocked) {
+    // For assassination, deduct coins upfront (like coup)
+    if (actionType === 'assassinate') {
+      actor.coins -= 3;
+      broadcast(gameCode, 'coins_changed', {
+        playerUid: uid,
+        oldCoins: actor.coins + 3,
+        newCoins: actor.coins,
+        reason: 'assassinate',
+      });
+    }
+
     // Determine initial phase based on whether action can be challenged
     const initialPhase = config.canBeChallenged
       ? 'awaiting_challenge'
@@ -209,20 +220,12 @@ export async function executeAction(
 
     case 'assassinate':
       if (targetUid) {
-        actor.coins -= 3;
-        broadcast(gameState.gameCode, 'coins_changed', {
-          playerUid: actorUid,
-          newCoins: actor.coins,
-          reason: 'assassinate',
-        });
-
+        // Coins already deducted in processAction
         // Target must reveal a card
         gameState.waitingForCardReveal = {
           playerUid: targetUid,
           reason: 'assassinated',
         };
-        await gameState.save();
-        return; // Don't advance turn yet
       }
       break;
 
@@ -234,7 +237,6 @@ export async function executeAction(
           playerUid: actorUid,
           drawnCards,
         };
-        await gameState.save();
 
         // Send drawn cards only to the actor
         broadcastToPlayer(
@@ -246,7 +248,6 @@ export async function executeAction(
             mustChoose: 2,
           }
         );
-        return; // Don't advance turn yet
       }
       break;
 

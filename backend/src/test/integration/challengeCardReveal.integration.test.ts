@@ -749,4 +749,591 @@ describe('Challenge Card Reveal Integration Tests', () => {
       expect(gameState!.currentPlayerIndex).toBe(1);
     });
   });
+
+  describe('Duke Card Exchange Edge Cases', () => {
+    it('should properly exchange card when actor successfully defends Duke tax claim', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 1 to HAVE Duke
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'duke', revealed: false },
+              { card: 'captain', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Save original deck state
+      let gameState = await GameState.findOne({ gameCode });
+      const originalDeckSize = gameState!.deck.length;
+      const originalCard = gameState!.players[0].cards[0].card;
+
+      // Player 1 declares tax (claims Duke)
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'tax' });
+
+      // Player 2 challenges (will lose because player1 has Duke)
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ isBlockChallenge: false });
+
+      // Check that Duke was shuffled back and new card drawn
+      gameState = await GameState.findOne({ gameCode });
+      const player1Cards = gameState!.players[0].cards;
+
+      // Player 1 should have a different card now (drew from deck after shuffling Duke back)
+      const newCard = player1Cards[0].card;
+
+      // Card might be different (unless drew Duke again from shuffled deck)
+      expect(gameState!.deck.length).toBe(originalDeckSize); // Same size (removed one, added one)
+
+      // Verify challenger must reveal
+      expect(gameState!.waitingForCardReveal).toBeTruthy();
+      expect(gameState!.waitingForCardReveal!.playerUid).toBe(player2);
+      expect(gameState!.waitingForCardReveal!.reason).toBe('challenge_lost');
+
+      // Player 2 reveals card
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ cardIndex: 0 });
+
+      // Verify action executed after card reveal
+      gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.players[0].coins).toBe(5); // 2 + 3 from tax
+      expect(gameState!.players[1].cards[0].revealed).toBe(true);
+    });
+
+    it('should properly exchange card when blocker successfully defends Duke block claim', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player3}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 2 to HAVE Duke
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player2 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'duke', revealed: false },
+              { card: 'ambassador', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Save original deck state
+      let gameState = await GameState.findOne({ gameCode });
+      const originalDeckSize = gameState!.deck.length;
+
+      // Player 1 declares foreign_aid
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'foreign_aid' });
+
+      // Player 2 blocks with Duke (has it)
+      await request(app)
+        .post(`/api/games/block/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ blockingCard: 'duke' });
+
+      // Player 3 challenges the block (will lose)
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player3}`)
+        .send({ isBlockChallenge: true });
+
+      // Check that Duke was shuffled back and new card drawn
+      gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.deck.length).toBe(originalDeckSize);
+
+      // Verify block challenger must reveal
+      expect(gameState!.waitingForCardReveal).toBeTruthy();
+      expect(gameState!.waitingForCardReveal!.playerUid).toBe(player3);
+
+      // Player 3 reveals card
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player3}`)
+        .send({ cardIndex: 1 });
+
+      // Verify action was blocked (no coins gained)
+      gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.players[0].coins).toBe(2); // No change, blocked
+      expect(gameState!.players[2].cards[1].revealed).toBe(true);
+    });
+  });
+
+  describe('Elimination Timing Edge Cases', () => {
+    it('should eliminate blocker when revealing last card after losing Duke block challenge', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player3}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 2 to have one card revealed and NOT have Duke
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player2 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'contessa', revealed: true },
+              { card: 'ambassador', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Player 1 declares foreign_aid
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'foreign_aid' });
+
+      // Player 2 blocks with Duke (doesn't have it)
+      await request(app)
+        .post(`/api/games/block/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ blockingCard: 'duke' });
+
+      // Player 3 challenges the block
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player3}`)
+        .send({ isBlockChallenge: true });
+
+      // Player 2 reveals last card
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ cardIndex: 1 })
+        .expect(200);
+
+      // Verify player 2 is eliminated
+      const gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.players[1].cards[0].revealed).toBe(true);
+      expect(gameState!.players[1].cards[1].revealed).toBe(true);
+
+      // Verify action executed (foreign_aid succeeded)
+      expect(gameState!.players[0].coins).toBe(4); // 2 + 2 from foreign_aid
+      expect(gameState!.currentPlayerIndex).toBe(2); // Skip eliminated player 1
+    });
+
+    it('should handle elimination when challenger loses and reveals last card', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 1 to HAVE Duke and player 2 to have one card revealed
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'duke', revealed: false },
+              { card: 'captain', revealed: false },
+            ],
+          },
+        }
+      );
+
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player2 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'assassin', revealed: true },
+              { card: 'contessa', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Player 1 declares tax (claims Duke)
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'tax' });
+
+      // Player 2 challenges (will lose)
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ isBlockChallenge: false });
+
+      // Player 2 reveals last card
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ cardIndex: 1 })
+        .expect(200);
+
+      // Verify player 2 is eliminated and tax executed
+      const gameState = await GameState.findOne({ gameCode });
+      expect(gameState!.players[1].cards[0].revealed).toBe(true);
+      expect(gameState!.players[1].cards[1].revealed).toBe(true);
+      expect(gameState!.players[0].coins).toBe(5); // 2 + 3 from tax
+    });
+  });
+
+  describe('State Cleanup Verification', () => {
+    it('should properly clear pendingAction after Duke challenge resolution', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 1 to NOT have Duke
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'assassin', revealed: false },
+              { card: 'captain', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Player 1 declares tax, player 2 challenges
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'tax' });
+
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ isBlockChallenge: false });
+
+      // Player 1 reveals card
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ cardIndex: 0 });
+
+      const gameState = await GameState.findOne({ gameCode });
+
+      // Verify all action state is cleared
+      expect(gameState!.pendingAction).toBeFalsy();
+      expect(gameState!.actionResolvesAt).toBeFalsy();
+      expect(gameState!.waitingForCardReveal).toBeFalsy();
+      expect(gameState!.currentPlayerIndex).toBe(1); // Turn advanced
+    });
+
+    it('should properly clear state after successful Duke block defense', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player3}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set player 2 to HAVE Duke
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player2 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'duke', revealed: false },
+              { card: 'ambassador', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Player 1 declares foreign_aid
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'foreign_aid' });
+
+      // Player 2 blocks with Duke
+      await request(app)
+        .post(`/api/games/block/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ blockingCard: 'duke' });
+
+      // Player 3 challenges the block (will lose)
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player3}`)
+        .send({ isBlockChallenge: true });
+
+      // Player 3 reveals card
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player3}`)
+        .send({ cardIndex: 0 });
+
+      const gameState = await GameState.findOne({ gameCode });
+
+      // Verify all state is cleared
+      expect(gameState!.pendingAction).toBeFalsy();
+      expect(gameState!.actionResolvesAt).toBeFalsy();
+      expect(gameState!.waitingForCardReveal).toBeFalsy();
+      expect(gameState!.currentPlayerIndex).toBe(1); // Turn advanced
+    });
+  });
+
+  describe('Deck Consistency Edge Cases', () => {
+    it('should maintain correct deck count through multiple Duke exchanges', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Set both players to have Duke
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'duke', revealed: false },
+              { card: 'captain', revealed: false },
+            ],
+          },
+        }
+      );
+
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player2 },
+        {
+          $set: {
+            'players.$.cards': [
+              { card: 'duke', revealed: false },
+              { card: 'assassin', revealed: false },
+            ],
+          },
+        }
+      );
+
+      let gameState = await GameState.findOne({ gameCode });
+      const initialDeckSize = gameState!.deck.length;
+      const initialTotalCards = initialDeckSize + 4; // 4 cards in player hands
+
+      // Player 1 declares tax, player 2 challenges and loses
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'tax' });
+
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ isBlockChallenge: false });
+
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ cardIndex: 0 });
+
+      gameState = await GameState.findOne({ gameCode });
+      const midDeckSize = gameState!.deck.length;
+      const midRevealedCards = 1; // player2 revealed 1 card
+      const midTotalCards = midDeckSize + 4 - midRevealedCards;
+
+      // Duke exchange is push+pop (net zero), so deck remains at initialDeckSize
+      expect(midDeckSize).toBe(initialDeckSize); // Deck unchanged after Duke exchange
+      expect(midDeckSize + 4).toBe(initialTotalCards); // Total cards conserved (deck + all 4 player cards)
+
+      // Now player 2's turn - they declare foreign_aid, player 1 blocks with Duke
+      await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ action: 'foreign_aid' });
+
+      await request(app)
+        .post(`/api/games/block/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ blockingCard: 'duke' });
+
+      await request(app)
+        .post(`/api/games/challenge/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ isBlockChallenge: true });
+
+      await request(app)
+        .post(`/api/games/reveal-card/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`)
+        .send({ cardIndex: 1 });
+
+      gameState = await GameState.findOne({ gameCode });
+      const finalDeckSize = gameState!.deck.length;
+
+      // Player 2 now has both cards revealed (eliminated)
+      // Duke exchanges don't change deck size (push+pop = net zero)
+      expect(finalDeckSize).toBe(initialDeckSize); // Deck unchanged after two Duke exchanges
+      expect(finalDeckSize + 4).toBe(initialTotalCards); // Total cards conserved
+    });
+  });
+
+  describe('Coin Threshold Edge Cases', () => {
+    it('should not allow tax action when player has 10+ coins', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Give player 1 exactly 10 coins (forced to coup)
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        {
+          $set: {
+            'players.$.coins': 10,
+            'players.$.cards': [
+              { card: 'duke', revealed: false },
+              { card: 'captain', revealed: false },
+            ],
+          },
+        }
+      );
+
+      // Try to declare tax (should fail)
+      const response = await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'tax' });
+
+      // Should be rejected because player must coup at 10 coins
+      expect(response.status).toBe(409);
+      expect(response.body.error).toContain('must coup');
+    });
+
+    it('should not allow foreign_aid action when player has 10+ coins', async () => {
+      const createRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ name: 'Test Game' });
+
+      const gameCode = createRes.body.gameCode;
+
+      await request(app)
+        .post(`/api/games/join/${gameCode}`)
+        .set('Authorization', `Bearer ${player2}`);
+
+      await request(app)
+        .post(`/api/games/start/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`);
+
+      // Give player 1 exactly 10 coins
+      await GameState.updateOne(
+        { gameCode, 'players.uid': player1 },
+        { $set: { 'players.$.coins': 10 } }
+      );
+
+      // Try to declare foreign_aid (should fail)
+      const response = await request(app)
+        .post(`/api/games/action/${gameCode}`)
+        .set('Authorization', `Bearer ${player1}`)
+        .send({ action: 'foreign_aid' });
+
+      expect(response.status).toBe(409);
+      expect(response.body.error).toContain('must coup');
+    });
+  });
 });

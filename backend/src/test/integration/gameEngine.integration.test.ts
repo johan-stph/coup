@@ -217,7 +217,7 @@ describe('Game Engine Integration Tests', () => {
         .post(`/api/games/action/${gameCode}`)
         .set('Authorization', `Bearer ${player1}`)
         .send({ action: 'income' })
-        .expect(400);
+        .expect(409);
     });
   });
 

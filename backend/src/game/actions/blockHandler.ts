@@ -7,6 +7,7 @@ import {
   validateCanBlock,
   validateBlockingCard,
   validatePlayerAlive,
+  ValidationError,
 } from '../validation/validators';
 import { broadcast } from '../../sse/lobbySSEManager';
 import { scheduleAutoResolution } from './resolutionHandler';
@@ -32,9 +33,12 @@ export async function processBlock(
 
   const pendingAction = gameState.pendingAction!;
 
-  // Validate phase
-  if (pendingAction.phase !== 'awaiting_block') {
-    throw new Error('Not in blocking phase');
+  // Validate phase - allow blocking during challenge phase for actions that can be both challenged and blocked
+  if (
+    pendingAction.phase !== 'awaiting_block' &&
+    pendingAction.phase !== 'awaiting_challenge'
+  ) {
+    throw new ValidationError('Not in blocking phase', 409);
   }
 
   // Validate action can be blocked
@@ -45,7 +49,12 @@ export async function processBlock(
 
   // Actor cannot block their own action (but other players can block)
   if (blockerUid === pendingAction.actorUid) {
-    throw new Error('You cannot block your own action');
+    throw new ValidationError('You cannot block your own action', 400);
+  }
+
+  // For targeted actions, only the target can block
+  if (pendingAction.targetUid && blockerUid !== pendingAction.targetUid) {
+    throw new ValidationError('Only the target can block this action', 403);
   }
 
   const helper = new GameStateHelper(gameState);
