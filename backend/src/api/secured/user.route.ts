@@ -138,6 +138,12 @@ router.post('/profile', async (req: AuthRequest, res: Response) => {
         .json({ error: 'Username must be between 3 and 50 characters' });
     }
 
+    let sanitizedUserName = userName;
+    if (sanitizedUserName.trim().toLowerCase() === 'you') {
+      const randomLetter = String.fromCharCode(97 + Math.floor(Math.random() * 26));
+      sanitizedUserName = `nice try - ${randomLetter}`;
+    }
+
     // Check if user already exists
     const existingUser = await User.findById(firebaseUid);
     if (existingUser) {
@@ -146,7 +152,7 @@ router.post('/profile', async (req: AuthRequest, res: Response) => {
 
     const newUser = new User({
       _id: firebaseUid,
-      userName,
+      userName: sanitizedUserName,
       email,
     });
 
