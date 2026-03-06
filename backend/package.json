@@ -20,7 +20,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.4",
     "express": "^5.1.0",
-    "firebase-admin": "^13.6.0",
+    "firebase-admin": "^13.7.0",
     "mongoose": "^9.2.4",
     "swagger-ui-express": "^5.0.1",
     "ts-node": "^10.9.2",
