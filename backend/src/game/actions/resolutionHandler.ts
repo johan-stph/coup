@@ -2,6 +2,8 @@ import GameState from '../../db/models/GameState.model';
 import { broadcast } from '../../sse/lobbySSEManager';
 import { executeAction, advanceTurn } from './actionHandler';
 
+const BLOCK_WINDOW_MS = 8000; // 8 seconds
+
 // Store active timeout handles to prevent duplicate scheduling
 const activeTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -52,18 +54,18 @@ export async function autoResolveAction(gameCode: string): Promise<void> {
     case 'awaiting_challenge':
       // No challenge received, proceed to block phase or execute
       if (pendingAction.canBeBlocked) {
-        // Move to block phase - no timer, players must explicitly allow or block
+        // Move to block phase - timed window, auto-executes if nobody blocks
         pendingAction.phase = 'awaiting_block';
-        gameState.actionResolvesAt = undefined;
+        gameState.actionResolvesAt = new Date(Date.now() + BLOCK_WINDOW_MS);
         await gameState.save();
 
         broadcast(gameCode, 'challenge_window_closed', {});
         broadcast(gameCode, 'block_window_open', {
           action: pendingAction.actionType,
-          resolvesAt: null,
+          resolvesAt: gameState.actionResolvesAt,
         });
 
-        // No auto-resolution scheduled - block phase is not time-constrained
+        scheduleAutoResolution(gameCode, BLOCK_WINDOW_MS);
       } else {
         // Execute action immediately
         broadcast(gameCode, 'challenge_window_closed', {});

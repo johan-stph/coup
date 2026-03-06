@@ -12,6 +12,9 @@ import {
 import { broadcast } from '../../sse/lobbySSEManager';
 import { shuffleDeck } from '../initialization/gameInitializer';
 import { executeAction, advanceTurn } from './actionHandler';
+import { scheduleAutoResolution } from './resolutionHandler';
+
+const BLOCK_WINDOW_MS = 8000; // 8 seconds
 
 /**
  * Handle a challenge to an action or block
@@ -315,14 +318,16 @@ export async function revealCard(
         // This was an action challenge that failed - move to block phase or execute
         if (pendingAction.canBeBlocked) {
           pendingAction.phase = 'awaiting_block';
-          gameState.actionResolvesAt = undefined;
+          gameState.actionResolvesAt = new Date(Date.now() + BLOCK_WINDOW_MS);
 
           await gameState.save();
 
           broadcast(gameCode, 'block_window_open', {
             action: pendingAction.actionType,
-            resolvesAt: null,
+            resolvesAt: gameState.actionResolvesAt,
           });
+
+          scheduleAutoResolution(gameCode, BLOCK_WINDOW_MS);
 
           // No auto-resolution - block phase is not time-constrained
           return; // Don't save again or advance turn

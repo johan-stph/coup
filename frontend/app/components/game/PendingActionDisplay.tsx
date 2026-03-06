@@ -95,39 +95,6 @@ function ChallengeCountdown({ resolvesAt }: { resolvesAt: string }) {
   );
 }
 
-function BlockWaitingIndicator() {
-  return (
-    <div
-      className="relative flex items-center justify-center"
-      style={{ width: 44, height: 44 }}
-    >
-      <svg width="44" height="44">
-        {/* Outer pulsing ring */}
-        <circle
-          cx="22"
-          cy="22"
-          r={CIRCLE_RADIUS}
-          fill="none"
-          stroke="rgba(255,170,0,0.3)"
-          strokeWidth="3"
-          className="animate-ping"
-          style={{ transformOrigin: '22px 22px' }}
-        />
-        {/* Inner steady ring */}
-        <circle
-          cx="22"
-          cy="22"
-          r={CIRCLE_RADIUS}
-          fill="none"
-          stroke="#ffaa00"
-          strokeWidth="2"
-          strokeDasharray="6 6"
-        />
-      </svg>
-    </div>
-  );
-}
-
 export default function PendingActionDisplay({
   pendingAction,
   actorName,
@@ -164,13 +131,10 @@ export default function PendingActionDisplay({
               {phase === 'awaiting_block_challenge' && 'CHALLENGE BLOCK'}
             </span>
 
-            {/* Countdown circle for challenge phases */}
-            {isChallengePhase && resolvesAt && (
+            {/* Countdown circle for challenge/block phases */}
+            {(isChallengePhase || isBlockPhase) && resolvesAt && (
               <ChallengeCountdown resolvesAt={resolvesAt} />
             )}
-
-            {/* Pulsing indicator for block phase (no timer) */}
-            {isBlockPhase && <BlockWaitingIndicator />}
           </div>
 
           {/* Actor and action */}
