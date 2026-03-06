@@ -15,7 +15,6 @@ import { broadcast, broadcastToPlayer } from '../../sse/lobbySSEManager';
 import { scheduleAutoResolution } from './resolutionHandler';
 
 const CHALLENGE_WINDOW_MS = 8000; // 8 seconds
-const BLOCK_WINDOW_MS = 8000; // 8 seconds
 
 /**
  * Process a game action
@@ -60,9 +59,13 @@ export async function processAction(
     const initialPhase = config.canBeChallenged
       ? 'awaiting_challenge'
       : 'awaiting_block';
-    const windowMs = config.canBeChallenged
-      ? CHALLENGE_WINDOW_MS
-      : BLOCK_WINDOW_MS;
+
+    // Only challenge phase is time-constrained; block phase waits for explicit allow/block
+    if (initialPhase === 'awaiting_challenge') {
+      gameState.actionResolvesAt = new Date(Date.now() + CHALLENGE_WINDOW_MS);
+    } else {
+      gameState.actionResolvesAt = undefined;
+    }
 
     // Create pending action
     gameState.pendingAction = {
@@ -75,7 +78,6 @@ export async function processAction(
       phase: initialPhase,
       timestamp: new Date(),
     };
-    gameState.actionResolvesAt = new Date(Date.now() + windowMs);
 
     await gameState.save();
 
@@ -91,8 +93,10 @@ export async function processAction(
       resolvesAt: gameState.actionResolvesAt,
     });
 
-    // Schedule auto-resolution
-    scheduleAutoResolution(gameCode, windowMs);
+    // Schedule auto-resolution only for timed challenge phase
+    if (initialPhase === 'awaiting_challenge') {
+      scheduleAutoResolution(gameCode, CHALLENGE_WINDOW_MS);
+    }
   } else {
     // Immediate execution for simple actions (income, coup without challenge)
     await executeActionImmediately(gameState, actionType, uid, targetUid);

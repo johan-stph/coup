@@ -31,6 +31,7 @@ import {
   revealCard,
 } from '../../game/actions/challengeHandler';
 import { processBlock } from '../../game/actions/blockHandler';
+import { processAllow } from '../../game/actions/allowHandler';
 import { processExchangeCards } from '../../game/actions/exchangeHandler';
 import { ValidationError } from '../../game/validation/validators';
 
@@ -486,6 +487,27 @@ router.post('/block/:gameCode', async (req: AuthRequest, res: Response) => {
     res
       .status(INTERNAL_SERVER_ERROR)
       .json({ error: 'Failed to process block' });
+  }
+});
+
+// POST /api/games/allow/:gameCode
+router.post('/allow/:gameCode', async (req: AuthRequest, res: Response) => {
+  try {
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    await processAllow(gameCode as string, uid);
+
+    res.json({ message: 'Action allowed' });
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    logger.error('Failed to process allow:', error);
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Failed to process allow' });
   }
 });
 

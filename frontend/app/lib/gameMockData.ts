@@ -19,22 +19,6 @@ export interface GameEvent {
   message: string;
 }
 
-// TODO: Replace with real WebSocket state
-export function buildMockPlayers(
-  players: { uid: string; userName: string }[],
-  localUid: string
-): GamePlayer[] {
-  return players.map((p) => ({
-    uid: p.uid,
-    userName: p.userName,
-    coins: Math.floor(Math.random() * 5) + 1,
-    cards: [
-      { card: null, revealed: false },
-      { card: null, revealed: false },
-    ],
-    isLocal: p.uid === localUid,
-  }));
-}
 
 // TODO: Replace with real WebSocket state
 export function getInitialEvents(): GameEvent[] {

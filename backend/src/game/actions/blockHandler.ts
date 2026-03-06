@@ -3,7 +3,6 @@ import { GameStateHelper } from '../gameState.schema';
 import { CardType } from '../../constants/cardTypes';
 import {
   validatePendingAction,
-  validateChallengeTiming,
   validateCanBlock,
   validateBlockingCard,
   validatePlayerAlive,
@@ -29,7 +28,6 @@ export async function processBlock(
 
   validatePendingAction(gameState);
   validatePlayerAlive(gameState, blockerUid);
-  validateChallengeTiming(gameState);
 
   const pendingAction = gameState.pendingAction!;
 

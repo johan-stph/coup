@@ -52,19 +52,18 @@ export async function autoResolveAction(gameCode: string): Promise<void> {
     case 'awaiting_challenge':
       // No challenge received, proceed to block phase or execute
       if (pendingAction.canBeBlocked) {
-        // Move to block phase
+        // Move to block phase - no timer, players must explicitly allow or block
         pendingAction.phase = 'awaiting_block';
-        gameState.actionResolvesAt = new Date(Date.now() + 8000);
+        gameState.actionResolvesAt = undefined;
         await gameState.save();
 
         broadcast(gameCode, 'challenge_window_closed', {});
         broadcast(gameCode, 'block_window_open', {
           action: pendingAction.actionType,
-          resolvesAt: gameState.actionResolvesAt,
+          resolvesAt: null,
         });
 
-        // Schedule next resolution
-        scheduleAutoResolution(gameCode, 8000);
+        // No auto-resolution scheduled - block phase is not time-constrained
       } else {
         // Execute action immediately
         broadcast(gameCode, 'challenge_window_closed', {});
