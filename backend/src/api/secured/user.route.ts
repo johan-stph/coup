@@ -140,7 +140,9 @@ router.post('/profile', async (req: AuthRequest, res: Response) => {
 
     let sanitizedUserName = userName;
     if (sanitizedUserName.trim().toLowerCase() === 'you') {
-      const randomLetter = String.fromCharCode(97 + Math.floor(Math.random() * 26));
+      const randomLetter = String.fromCharCode(
+        97 + Math.floor(Math.random() * 26)
+      );
       sanitizedUserName = `nice try - ${randomLetter}`;
     }
 

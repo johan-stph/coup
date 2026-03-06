@@ -37,7 +37,10 @@ export async function processExchangeCards(
   // Validate player chose exactly as many cards as they currently hold
   const mustKeep = currentCards.length;
   if (chosenCardIndices.length !== mustKeep) {
-    throw new ValidationError(`Must choose exactly ${mustKeep} card${mustKeep !== 1 ? 's' : ''}`, 400);
+    throw new ValidationError(
+      `Must choose exactly ${mustKeep} card${mustKeep !== 1 ? 's' : ''}`,
+      400
+    );
   }
 
   // Validate indices

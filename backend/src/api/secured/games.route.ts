@@ -695,7 +695,11 @@ router.get('/:gameCode/state', async (req: AuthRequest, res: Response) => {
     [...eliminationOrder].reverse().forEach((eliminatedUid, i) => {
       const player = currentState.players.find((p) => p.uid === eliminatedUid);
       if (player) {
-        rankings.push({ uid: player.uid, userName: player.userName, rank: i + 2 });
+        rankings.push({
+          uid: player.uid,
+          userName: player.userName,
+          rank: i + 2,
+        });
       }
     });
 
