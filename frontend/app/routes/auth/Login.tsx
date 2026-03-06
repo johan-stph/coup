@@ -79,7 +79,7 @@ export default function Login() {
               <button
                 onClick={handleGoogleSignIn}
                 disabled={isSigningIn}
-                className="btn-glow w-full border border-neon-red py-3 font-display text-sm font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-glow w-full border border-neon-red py-3 font-display text-sm font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSigningIn ? (
                   <div className="flex items-center justify-center gap-2">

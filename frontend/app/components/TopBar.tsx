@@ -27,7 +27,7 @@ export default function TopBar() {
       {/* Right side buttons */}
       <div className="flex items-center gap-4">
         {/* Protocols / Rules */}
-        <button className="flex items-center gap-2 font-mono text-xs tracking-widest text-text-muted transition-colors hover:text-white">
+        <button className="flex items-center gap-2 font-mono text-xs tracking-widest text-text-muted transition-colors hover:cursor-pointer hover:text-white">
           PROTOCOLS
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -48,7 +48,7 @@ export default function TopBar() {
         {/* Logout Button */}
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 font-mono text-xs tracking-widest text-text-muted transition-colors hover:text-neon-red"
+          className="flex items-center gap-2 font-mono text-xs tracking-widest text-text-muted transition-colors hover:cursor-pointer hover:text-neon-red"
           title="Logout"
         >
           LOGOUT

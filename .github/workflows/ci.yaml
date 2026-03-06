@@ -1,4 +1,4 @@
-name: FMT, LINT, TYPECHECK, BUILD
+name: FMT, LINT, TEST, TYPECHECK, BUILD
 
 on:
   push:
@@ -68,6 +68,9 @@ jobs:
 
       - name: Run ESLint
         run: npm run lint
+
+      - name: Run tests
+        run: npm test
 
       - name: Build project
         run: npm run build

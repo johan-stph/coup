@@ -1,10 +1,15 @@
 // TODO: Replace with real WebSocket state
 
+export interface PlayerCard {
+  card: string | null;
+  revealed: boolean;
+}
+
 export interface GamePlayer {
   uid: string;
   userName: string;
   coins: number;
-  cardCount: number;
+  cards: PlayerCard[];
   isLocal: boolean;
 }
 
@@ -12,20 +17,6 @@ export interface GameEvent {
   id: string;
   timestamp: string;
   message: string;
-}
-
-// TODO: Replace with real WebSocket state
-export function buildMockPlayers(
-  players: { uid: string; userName: string }[],
-  localUid: string
-): GamePlayer[] {
-  return players.map((p) => ({
-    uid: p.uid,
-    userName: p.userName,
-    coins: Math.floor(Math.random() * 5) + 1,
-    cardCount: 2,
-    isLocal: p.uid === localUid,
-  }));
 }
 
 // TODO: Replace with real WebSocket state

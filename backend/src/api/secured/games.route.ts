@@ -3,6 +3,7 @@ import { z } from 'zod';
 import registry from '../../openapi/openApiRegistry';
 import { AuthRequest } from '../../auth/auth.middleware';
 import Game, { GAME_STATUSES } from '../../db/models/Game.model';
+import GameState from '../../db/models/GameState.model';
 import User from '../../db/models/User.model';
 import {
   BAD_REQUEST,
@@ -14,13 +15,26 @@ import {
   OK,
 } from '../../constants/http';
 import { GAME_ACTIONS } from '../../constants/gameActions';
+import { CARD_TYPES } from '../../constants/cardTypes';
 import logger from '../../utils/logger/logger';
 import {
   addClient,
   removeClient,
   closeClient,
   broadcast,
+  broadcastToPlayer,
 } from '../../sse/lobbySSEManager';
+import { initializeGameState } from '../../game/initialization/gameInitializer';
+import { processAction } from '../../game/actions/actionHandler';
+import {
+  processChallenge,
+  revealCard,
+} from '../../game/actions/challengeHandler';
+import { processBlock } from '../../game/actions/blockHandler';
+import { processAllow } from '../../game/actions/allowHandler';
+import { processExchangeCards } from '../../game/actions/exchangeHandler';
+import { autoResolveAction } from '../../game/actions/resolutionHandler';
+import { ValidationError } from '../../game/validation/validators';
 
 const router = Router();
 
@@ -334,10 +348,44 @@ router.post('/start/:gameCode', async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    // Initialize game state
+    const { players, deck } = initializeGameState(game);
+
+    const gameState = new GameState({
+      gameCode: game.gameCode,
+      players,
+      deck,
+      currentPlayerIndex: 0,
+    });
+    await gameState.save();
+
+    // Update game status
     game.status = 'in_progress';
     await game.save();
 
+    // Broadcast game started
     broadcast(gameCode as string, 'game_started', { status: 'in_progress' });
+
+    // Send private card information to each player
+    for (const player of players) {
+      broadcastToPlayer(gameCode as string, player.uid, 'game_initialized', {
+        yourCards: player.cards,
+        players: players.map((p) => ({
+          uid: p.uid,
+          userName: p.userName,
+          coins: p.coins,
+          cardCount: p.cards.length,
+        })),
+        currentPlayerUid: players[0].uid,
+      });
+    }
+
+    // Broadcast turn started for first player
+    broadcast(gameCode as string, 'turn_started', {
+      currentPlayerUid: players[0].uid,
+      currentPlayerUserName: players[0].userName,
+      mustCoup: false,
+    });
 
     res.json({ message: 'Game started successfully' });
   } catch (error) {
@@ -347,7 +395,10 @@ router.post('/start/:gameCode', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /api/games/action/:gameCode
-const ActionBody = z.object({ action: z.enum(GAME_ACTIONS) });
+const ActionBody = z.object({
+  action: z.enum(GAME_ACTIONS),
+  targetUid: z.string().optional(),
+});
 
 router.post('/action/:gameCode', async (req: AuthRequest, res: Response) => {
   try {
@@ -357,7 +408,216 @@ router.post('/action/:gameCode', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const { action } = parsed.data;
+    const { action, targetUid } = parsed.data;
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    await processAction(gameCode as string, uid, action, targetUid);
+
+    res.json({ message: 'Action processed' });
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    logger.error('Failed to perform action:', error);
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Failed to perform action' });
+  }
+});
+
+// POST /api/games/challenge/:gameCode
+const ChallengeBody = z.object({
+  isBlockChallenge: z.boolean().default(false),
+});
+
+router.post('/challenge/:gameCode', async (req: AuthRequest, res: Response) => {
+  try {
+    const parsed = ChallengeBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(BAD_REQUEST).json({ error: parsed.error.issues });
+      return;
+    }
+
+    const { isBlockChallenge } = parsed.data;
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    await processChallenge(gameCode as string, uid, isBlockChallenge);
+
+    res.json({ message: 'Challenge processed' });
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    logger.error('Failed to process challenge:', error);
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Failed to process challenge' });
+  }
+});
+
+// POST /api/games/block/:gameCode
+const BlockBody = z.object({
+  blockingCard: z.enum(CARD_TYPES),
+});
+
+router.post('/block/:gameCode', async (req: AuthRequest, res: Response) => {
+  try {
+    const parsed = BlockBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(BAD_REQUEST).json({ error: parsed.error.issues });
+      return;
+    }
+
+    const { blockingCard } = parsed.data;
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    await processBlock(gameCode as string, uid, blockingCard);
+
+    res.json({ message: 'Block processed' });
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    logger.error('Failed to process block:', error);
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Failed to process block' });
+  }
+});
+
+// POST /api/games/allow/:gameCode
+router.post('/allow/:gameCode', async (req: AuthRequest, res: Response) => {
+  try {
+    const { gameCode } = req.params;
+    const uid = req.user!.uid;
+
+    await processAllow(gameCode as string, uid);
+
+    res.json({ message: 'Action allowed' });
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    logger.error('Failed to process allow:', error);
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Failed to process allow' });
+  }
+});
+
+// POST /api/games/reveal-card/:gameCode
+const RevealCardBody = z.object({
+  cardIndex: z.number().min(0).max(1),
+});
+
+router.post(
+  '/reveal-card/:gameCode',
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const parsed = RevealCardBody.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(BAD_REQUEST).json({ error: parsed.error.issues });
+        return;
+      }
+
+      const { cardIndex } = parsed.data;
+      const { gameCode } = req.params;
+      const uid = req.user!.uid;
+
+      await revealCard(gameCode as string, uid, cardIndex);
+
+      res.json({ message: 'Card revealed' });
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        res.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+      logger.error('Failed to reveal card:', error);
+      res
+        .status(INTERNAL_SERVER_ERROR)
+        .json({ error: 'Failed to reveal card' });
+    }
+  }
+);
+
+// POST /api/games/exchange-cards/:gameCode
+const ExchangeCardsBody = z.object({
+  chosenCardIndices: z.array(z.number().min(0)).min(1).max(4),
+});
+
+router.post(
+  '/exchange-cards/:gameCode',
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const parsed = ExchangeCardsBody.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(BAD_REQUEST).json({ error: parsed.error.issues });
+        return;
+      }
+
+      const { chosenCardIndices } = parsed.data;
+      const { gameCode } = req.params;
+      const uid = req.user!.uid;
+
+      await processExchangeCards(gameCode as string, uid, chosenCardIndices);
+
+      res.json({ message: 'Exchange completed' });
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        res.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+      logger.error('Failed to exchange cards:', error);
+      res
+        .status(INTERNAL_SERVER_ERROR)
+        .json({ error: 'Failed to exchange cards' });
+    }
+  }
+);
+
+// GET /api/games/:gameCode/state
+registry.registerPath({
+  method: 'get',
+  path: '/api/games/{gameCode}/state',
+  summary: 'Get current game state',
+  security: [{ BearerAuth: [] }],
+  request: {
+    params: z.object({
+      gameCode: z.string(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Game state',
+      content: {
+        'application/json': {
+          schema: z.object({
+            gameCode: z.string(),
+            gameName: z.string(),
+            players: z.array(z.any()),
+            currentPlayerIndex: z.number(),
+            pendingAction: z.any().optional(),
+            actionResolvesAt: z.string().optional(),
+            waitingForCardReveal: z.any().optional(),
+            waitingForExchange: z.any().optional(),
+          }),
+        },
+      },
+    },
+    404: { description: 'Game not found / Game state not found' },
+    403: { description: 'You are not a player in this game' },
+  },
+});
+
+router.get('/:gameCode/state', async (req: AuthRequest, res: Response) => {
+  try {
     const { gameCode } = req.params;
     const uid = req.user!.uid;
 
@@ -368,31 +628,98 @@ router.post('/action/:gameCode', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    if (game.status !== 'in_progress') {
-      res.status(CONFLICT).json({ error: 'Game is not in progress' });
-      return;
-    }
-
-    const player = game.players.find((p) => p.uid === uid);
-    if (!player) {
+    if (!game.players.some((p) => p.uid === uid)) {
       res
         .status(FORBIDDEN)
         .json({ error: 'You are not a player in this game' });
       return;
     }
 
-    broadcast(gameCode as string, 'action_performed', {
-      uid,
-      userName: player.userName,
-      action,
+    const gameState = await GameState.findOne({ gameCode });
+
+    if (!gameState) {
+      res.status(NOT_FOUND).json({ error: 'Game state not found' });
+      return;
+    }
+
+    let currentState = gameState;
+
+    // If the challenge/block timer expired but the in-memory timeout was lost
+    // (e.g. server restart), resolve the action now so clients don't get stuck.
+    if (
+      currentState.actionResolvesAt &&
+      new Date() > currentState.actionResolvesAt
+    ) {
+      await autoResolveAction(gameCode);
+      // Re-read the now-updated state before building the response
+      currentState = (await GameState.findOne({ gameCode })) ?? currentState;
+    }
+
+    // Filter players to show only own unrevealed cards
+    const players = currentState.players.map((player) => {
+      if (player.uid === uid) {
+        // Show all cards for the requesting player
+        return {
+          uid: player.uid,
+          userName: player.userName,
+          coins: player.coins,
+          cards: player.cards,
+        };
+      } else {
+        // For other players, only show revealed cards
+        return {
+          uid: player.uid,
+          userName: player.userName,
+          coins: player.coins,
+          cards: player.cards.map((c) => ({
+            card: c.revealed ? c.card : null,
+            revealed: c.revealed,
+          })),
+        };
+      }
     });
 
-    res.json({ message: 'Action performed' });
+    // Compute elimination rankings
+    const activePlayers = currentState.players.filter((p) =>
+      p.cards.some((c) => !c.revealed)
+    );
+    const rankings: { uid: string; userName: string; rank: number }[] = [];
+    if (activePlayers.length === 1) {
+      rankings.push({
+        uid: activePlayers[0].uid,
+        userName: activePlayers[0].userName,
+        rank: 1,
+      });
+    }
+    const eliminationOrder = currentState.eliminationOrder ?? [];
+    [...eliminationOrder].reverse().forEach((eliminatedUid, i) => {
+      const player = currentState.players.find((p) => p.uid === eliminatedUid);
+      if (player) {
+        rankings.push({
+          uid: player.uid,
+          userName: player.userName,
+          rank: i + 2,
+        });
+      }
+    });
+
+    res.json({
+      gameCode: currentState.gameCode,
+      gameName: game.name,
+      players,
+      currentPlayerIndex: currentState.currentPlayerIndex,
+      pendingAction: currentState.pendingAction,
+      actionResolvesAt: currentState.actionResolvesAt?.toISOString(),
+      waitingForCardReveal: currentState.waitingForCardReveal,
+      waitingForExchange: currentState.waitingForExchange,
+      gameStatus: game.status,
+      rankings: rankings.slice(0, 3),
+    });
   } catch (error) {
-    logger.error('Failed to perform action:', error);
+    logger.error('Failed to fetch game state:', error);
     res
       .status(INTERNAL_SERVER_ERROR)
-      .json({ error: 'Failed to perform action' });
+      .json({ error: 'Failed to fetch game state' });
   }
 });
 

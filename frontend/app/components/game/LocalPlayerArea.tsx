@@ -2,9 +2,13 @@ import type { GamePlayer } from '~/lib/gameMockData';
 
 interface LocalPlayerAreaProps {
   player: GamePlayer;
+  isMyTurn: boolean;
 }
 
-export default function LocalPlayerArea({ player }: LocalPlayerAreaProps) {
+export default function LocalPlayerArea({
+  player,
+  isMyTurn,
+}: LocalPlayerAreaProps) {
   return (
     <div className="flex items-center justify-between border-t border-surface-light bg-surface/50 px-6 py-4">
       {/* Left — operative info */}
@@ -35,25 +39,41 @@ export default function LocalPlayerArea({ player }: LocalPlayerAreaProps) {
 
       {/* Center — influence cards */}
       <div className="flex gap-3">
-        {Array.from({ length: player.cardCount }).map((_, i) => (
+        {player.cards.map((cardData, i) => (
           <div key={i} className="corner-brackets">
-            <div className="flex h-22 w-16 items-center justify-center bg-surface-light">
-              <span className="font-mono text-[8px] tracking-widest text-text-muted">
-                CLASSIFIED
-              </span>
+            <div className="flex h-22 w-16 flex-col items-center justify-center bg-surface-light px-1">
+              {cardData.revealed ? (
+                <>
+                  <span className="font-mono text-[8px] tracking-widest text-text-muted line-through">
+                    {cardData.card?.toUpperCase()}
+                  </span>
+                  <span className="font-mono text-[6px] tracking-widest text-neon-red">
+                    REVEALED
+                  </span>
+                </>
+              ) : cardData.card ? (
+                <span className="font-mono text-[8px] tracking-widest text-neon-cyan">
+                  {cardData.card.toUpperCase()}
+                </span>
+              ) : (
+                <span className="font-mono text-[8px] tracking-widest text-text-muted">
+                  CLASSIFIED
+                </span>
+              )}
             </div>
           </div>
         ))}
       </div>
 
       {/* Right — turn indicator */}
-      {/* TODO: based on real turn state */}
-      <div className="flex items-center gap-2">
-        <span className="status-pulse inline-block h-2 w-2 rounded-full bg-neon-cyan" />
-        <span className="font-mono text-xs tracking-widest text-neon-cyan">
-          YOUR TURN
-        </span>
-      </div>
+      {isMyTurn && (
+        <div className="flex items-center gap-2">
+          <span className="status-pulse inline-block h-2 w-2 rounded-full bg-neon-cyan" />
+          <span className="font-mono text-xs tracking-widest text-neon-cyan">
+            YOUR TURN
+          </span>
+        </div>
+      )}
     </div>
   );
 }

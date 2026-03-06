@@ -45,12 +45,25 @@ export default function PlayerCard({ player }: PlayerCardProps) {
 
       {/* Face-down cards */}
       <div className="flex gap-1.5">
-        {Array.from({ length: player.cardCount }).map((_, i) => (
+        {player.cards.map((cardData, i) => (
           <div
             key={i}
-            className="flex h-11 w-8 items-center justify-center rounded-sm border border-neon-red-dim bg-surface-light"
+            className="flex h-11 w-8 flex-col items-center justify-center rounded-sm border border-neon-red-dim bg-surface-light"
           >
-            <span className="font-mono text-xs text-text-muted">?</span>
+            {cardData.revealed ? (
+              <>
+                <span className="font-mono text-[6px] text-text-muted line-through">
+                  {cardData.card?.substring(0, 3).toUpperCase()}
+                </span>
+                <span className="font-mono text-[5px] text-neon-red">OUT</span>
+              </>
+            ) : cardData.card ? (
+              <span className="font-mono text-[7px] text-neon-cyan">
+                {cardData.card.substring(0, 3).toUpperCase()}
+              </span>
+            ) : (
+              <span className="font-mono text-xs text-text-muted">?</span>
+            )}
           </div>
         ))}
       </div>
