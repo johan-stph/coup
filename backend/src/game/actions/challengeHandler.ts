@@ -195,6 +195,7 @@ export async function loseCard(
 
     // Check if player is eliminated
     if (remainingCards === 0) {
+      gameState.eliminationOrder.push(playerUid);
       broadcast(gameState.gameCode, 'player_eliminated', {
         playerUid,
         userName: player.userName,
@@ -250,6 +251,7 @@ export async function revealCard(
 
   // Check if player is eliminated
   if (remainingCards === 0) {
+    gameState.eliminationOrder.push(playerUid);
     broadcast(gameCode, 'player_eliminated', {
       playerUid,
       userName: player.userName,

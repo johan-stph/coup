@@ -63,6 +63,7 @@ export interface IGameState extends Document {
   players: GameStatePlayer[];
   currentPlayerIndex: number;
   deck: CardType[];
+  eliminationOrder: string[];
   accusation?: Accusation;
   pendingAction?: PendingAction;
   actionResolvesAt?: Date;
@@ -101,6 +102,7 @@ const gameStateSchema = new Schema<IGameState>(
       default: [],
     },
     currentPlayerIndex: { type: Number, required: true, default: 0 },
+    eliminationOrder: { type: [String], default: [] },
     deck: {
       type: [String],
       enum: CARD_TYPES,

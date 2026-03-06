@@ -665,6 +665,26 @@ router.get('/:gameCode/state', async (req: AuthRequest, res: Response) => {
       }
     });
 
+    // Compute elimination rankings
+    const activePlayers = gameState.players.filter((p) =>
+      p.cards.some((c) => !c.revealed)
+    );
+    const rankings: { uid: string; userName: string; rank: number }[] = [];
+    if (activePlayers.length === 1) {
+      rankings.push({
+        uid: activePlayers[0].uid,
+        userName: activePlayers[0].userName,
+        rank: 1,
+      });
+    }
+    const eliminationOrder = gameState.eliminationOrder ?? [];
+    [...eliminationOrder].reverse().forEach((eliminatedUid, i) => {
+      const player = gameState.players.find((p) => p.uid === eliminatedUid);
+      if (player) {
+        rankings.push({ uid: player.uid, userName: player.userName, rank: i + 2 });
+      }
+    });
+
     res.json({
       gameCode: gameState.gameCode,
       gameName: game.name,
@@ -674,6 +694,8 @@ router.get('/:gameCode/state', async (req: AuthRequest, res: Response) => {
       actionResolvesAt: gameState.actionResolvesAt?.toISOString(),
       waitingForCardReveal: gameState.waitingForCardReveal,
       waitingForExchange: gameState.waitingForExchange,
+      gameStatus: game.status,
+      rankings: rankings.slice(0, 3),
     });
   } catch (error) {
     logger.error('Failed to fetch game state:', error);

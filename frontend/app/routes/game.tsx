@@ -11,6 +11,7 @@ import RevealCardModal from '~/components/game/RevealCardModal';
 import CardRevealNotification from '~/components/game/CardRevealNotification';
 import TargetSelectionModal from '~/components/game/TargetSelectionModal';
 import BlockCardSelectionModal from '~/components/game/BlockCardSelectionModal';
+import VictoryScreen from '~/components/game/VictoryScreen';
 import { useGameSSE } from '~/hooks/useGameSSE';
 import { authFetch } from '~/lib/authFetch';
 import {
@@ -40,6 +41,12 @@ interface PendingAction {
 interface WaitingForCardReveal {
   playerUid: string;
   reason: 'challenge_lost' | 'couped' | 'assassinated';
+}
+
+interface Ranking {
+  uid: string;
+  userName: string;
+  rank: number;
 }
 
 const ACTION_TO_ENUM: Record<string, string> = {
@@ -75,6 +82,8 @@ export default function Game() {
   const [waitingForCardReveal, setWaitingForCardReveal] = useState<WaitingForCardReveal | null>(null);
   const [targetSelectionAction, setTargetSelectionAction] = useState<'steal' | 'assassinate' | 'coup' | null>(null);
   const [showBlockCardSelection, setShowBlockCardSelection] = useState(false);
+  const [gameStatus, setGameStatus] = useState<string>('in_progress');
+  const [rankings, setRankings] = useState<Ranking[]>([]);
 
   // Fetch game state
   useEffect(() => {
@@ -105,6 +114,8 @@ export default function Game() {
           setActionResolvesAt(data.actionResolvesAt || null);
           setCurrentPlayerIndex(data.currentPlayerIndex ?? 0);
           setWaitingForCardReveal(data.waitingForCardReveal || null);
+          setGameStatus(data.gameStatus ?? 'in_progress');
+          setRankings(data.rankings ?? []);
         }
       } catch (error) {
         console.error('Failed to fetch game state:', error);
@@ -156,6 +167,9 @@ export default function Game() {
   const opponents = players.filter((p) => !p.isLocal);
   const localPlayerIndex = players.findIndex((p) => p.isLocal);
   const isMyTurn = localPlayerIndex === currentPlayerIndex;
+  const isLocalEliminated = localPlayer
+    ? localPlayer.cards.length > 0 && localPlayer.cards.every((c) => c.revealed)
+    : false;
   
   // Get actor and blocker names for pending action
   const actorPlayer = pendingAction
@@ -297,6 +311,15 @@ export default function Game() {
 
   return (
     <div className="bg-radial-glow scanlines flex min-h-screen flex-col text-white">
+      {/* Victory / game-over overlay */}
+      {gameStatus === 'finished' && (
+        <VictoryScreen
+          rankings={rankings}
+          localPlayerUid={user?.uid ?? ''}
+          onReturn={() => navigate('/')}
+        />
+      )}
+
       {/* Header bar */}
       <header className="flex items-start justify-between px-6 py-4">
         <button
@@ -337,15 +360,23 @@ export default function Game() {
         {localPlayer && <LocalPlayerArea player={localPlayer} isMyTurn={isMyTurn} />}
       </main>
 
-      {/* Fixed action bar */}
-      <ActionBar
-        onAction={handleAction}
-        onBlock={handleBlock}
-        onAllow={handleAllow}
-        canBlock={canBlock}
-        blockButtonText={blockButtonText}
-        disabled={canBlock ? false : !isMyTurn || !!pendingAction}
-      />
+      {/* Fixed action bar or spectator indicator */}
+      {isLocalEliminated ? (
+        <div className="fixed bottom-0 left-0 right-0 flex justify-center bg-void/80 pb-8 pt-4 backdrop-blur-sm">
+          <span className="font-mono text-[10px] tracking-[0.4em] text-text-muted">
+            ELIMINATED — SPECTATING
+          </span>
+        </div>
+      ) : (
+        <ActionBar
+          onAction={handleAction}
+          onBlock={handleBlock}
+          onAllow={handleAllow}
+          canBlock={canBlock}
+          blockButtonText={blockButtonText}
+          disabled={canBlock ? false : !isMyTurn || !!pendingAction}
+        />
+      )}
 
       {/* Pending action display */}
       {pendingAction && actorPlayer && (
@@ -357,8 +388,8 @@ export default function Game() {
           isActor={isActorOfPendingAction}
           isBlocker={isBlockerOfPendingAction}
           resolvesAt={actionResolvesAt}
-          onChallenge={handleChallenge}
-          onChallengeBlock={handleChallengeBlock}
+          onChallenge={isLocalEliminated ? undefined : handleChallenge}
+          onChallengeBlock={isLocalEliminated ? undefined : handleChallengeBlock}
         />
       )}
 
