@@ -186,6 +186,7 @@ export default function Game() {
     : null;
   const isActorOfPendingAction = pendingAction?.actorUid === user?.uid;
   const isBlockerOfPendingAction = pendingAction?.blockingPlayerUid === user?.uid;
+  const isTargetOfPendingAction = pendingAction?.targetUid === user?.uid;
 
   // Check if user can block current action
   const canBlockForeignAid =
@@ -387,6 +388,7 @@ export default function Game() {
           blockerName={blockerPlayer?.userName}
           isActor={isActorOfPendingAction}
           isBlocker={isBlockerOfPendingAction}
+          isTarget={isTargetOfPendingAction}
           resolvesAt={actionResolvesAt}
           onChallenge={isLocalEliminated ? undefined : handleChallenge}
           onChallengeBlock={isLocalEliminated ? undefined : handleChallengeBlock}

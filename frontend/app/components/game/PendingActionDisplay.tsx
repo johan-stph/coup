@@ -16,6 +16,7 @@ interface PendingActionDisplayProps {
   blockerName?: string;
   isActor: boolean;
   isBlocker: boolean;
+  isTarget: boolean;
   resolvesAt?: string | null;
   onChallenge?: () => void;
   onChallengeBlock?: () => void;
@@ -128,6 +129,7 @@ export default function PendingActionDisplay({
   blockerName,
   isActor,
   isBlocker,
+  isTarget,
   resolvesAt,
   onChallenge,
   onChallengeBlock,
@@ -186,8 +188,8 @@ export default function PendingActionDisplay({
               {hasTarget && (
                 <>
                   <span className="font-mono text-xs text-text-muted">targeting</span>
-                  <span className="font-display text-lg font-semibold tracking-wider text-neon-cyan">
-                    {targetName}
+                  <span className={`font-display text-lg font-semibold tracking-wider ${isTarget ? 'text-neon-red' : 'text-neon-cyan'}`}>
+                    {isTarget ? 'YOU' : targetName}
                   </span>
                 </>
               )}
