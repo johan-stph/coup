@@ -61,7 +61,7 @@ export default function BlockCardSelectionModal({
               <button
                 key={card}
                 onClick={() => onSelect(card)}
-                className="corner-brackets transition-all hover:scale-105"
+                className="corner-brackets transition-all hover:cursor-pointer hover:scale-105"
               >
                 <div className="flex h-40 w-32 flex-col items-center justify-center gap-3 bg-surface-light p-4 transition-all hover:bg-neon-cyan/20 hover:border-2 hover:border-neon-cyan">
                   {/* Card icon */}
@@ -93,7 +93,7 @@ export default function BlockCardSelectionModal({
           {/* Cancel button */}
           <button
             onClick={onCancel}
-            className="btn-glow w-full border border-text-muted py-3 text-center font-display text-sm font-semibold tracking-widest text-text-muted transition-all hover:bg-text-muted/10"
+            className="btn-glow w-full border border-text-muted py-3 text-center font-display text-sm font-semibold tracking-widest text-text-muted transition-all hover:cursor-pointer hover:bg-text-muted/10"
           >
             CANCEL
           </button>

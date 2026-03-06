@@ -60,7 +60,7 @@ export default function RevealCardModal({
               <button
                 key={index}
                 onClick={() => setSelectedIndex(index)}
-                className={`corner-brackets transition-all hover:scale-105 ${
+                className={`corner-brackets transition-all hover:cursor-pointer hover:scale-105 ${
                   selectedIndex === index ? 'shadow-glow' : ''
                 }`}
               >
@@ -122,7 +122,7 @@ export default function RevealCardModal({
           <button
             onClick={handleConfirm}
             disabled={selectedIndex === null}
-            className="btn-glow w-full border border-neon-red py-3 text-center font-display text-sm font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-glow w-full border border-neon-red py-3 text-center font-display text-sm font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
           >
             REVEAL CARD
           </button>

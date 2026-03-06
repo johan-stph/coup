@@ -116,7 +116,7 @@ export default function Setup() {
                 type="submit"
                 onClick={handleSubmit}
                 disabled={isSubmitting || userName.length < 3}
-                className="btn-glow w-full border border-neon-red py-3 font-display text-sm font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-glow w-full border border-neon-red py-3 font-display text-sm font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <div className="flex items-center justify-center gap-2">
@@ -133,7 +133,7 @@ export default function Setup() {
                 type="button"
                 onClick={handleLogout}
                 disabled={isSubmitting}
-                className="w-full border border-text-muted/30 py-2 font-mono text-[10px] font-semibold tracking-widest text-text-muted transition-all hover:border-text-muted hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full border border-text-muted/30 py-2 font-mono text-[10px] font-semibold tracking-widest text-text-muted transition-all hover:border-text-muted hover:text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 LOGOUT
               </button>

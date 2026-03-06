@@ -71,7 +71,7 @@ export default function TargetSelectionModal({
               <button
                 key={player.uid}
                 onClick={() => setSelectedUid(player.uid)}
-                className={`corner-brackets transition-all hover:scale-105 ${
+                className={`corner-brackets transition-all hover:cursor-pointer hover:scale-105 ${
                   selectedUid === player.uid ? 'shadow-glow' : ''
                 }`}
               >
@@ -147,14 +147,14 @@ export default function TargetSelectionModal({
           <div className="flex w-full gap-4">
             <button
               onClick={onCancel}
-              className="btn-glow flex-1 border border-text-muted py-3 text-center font-display text-sm font-semibold tracking-widest text-text-muted transition-all hover:bg-text-muted/10"
+              className="btn-glow flex-1 border border-text-muted py-3 text-center font-display text-sm font-semibold tracking-widest text-text-muted transition-all hover:cursor-pointer hover:bg-text-muted/10"
             >
               CANCEL
             </button>
             <button
               onClick={handleConfirm}
               disabled={!selectedUid}
-              className="btn-glow flex-1 border border-neon-red py-3 text-center font-display text-sm font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn-glow flex-1 border border-neon-red py-3 text-center font-display text-sm font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
             >
               CONFIRM
             </button>
