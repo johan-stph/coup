@@ -9,6 +9,7 @@ import ActionAnnouncement from '~/components/game/ActionAnnouncement';
 import PendingActionDisplay from '~/components/game/PendingActionDisplay';
 import RevealCardModal from '~/components/game/RevealCardModal';
 import CardRevealNotification from '~/components/game/CardRevealNotification';
+import ExchangeModal from '~/components/game/ExchangeModal';
 import TargetSelectionModal from '~/components/game/TargetSelectionModal';
 import BlockCardSelectionModal from '~/components/game/BlockCardSelectionModal';
 import VictoryScreen from '~/components/game/VictoryScreen';
@@ -43,6 +44,11 @@ interface WaitingForCardReveal {
   reason: 'challenge_lost' | 'couped' | 'assassinated';
 }
 
+interface WaitingForExchange {
+  playerUid: string;
+  drawnCards: string[];
+}
+
 interface Ranking {
   uid: string;
   userName: string;
@@ -54,6 +60,7 @@ const ACTION_TO_ENUM: Record<string, string> = {
   'FOREIGN AID': 'foreign_aid',
   TAX: 'tax',
   STEAL: 'steal',
+  EXCHANGE: 'exchange',
 };
 
 const ENUM_TO_DISPLAY: Record<string, string> = {
@@ -61,6 +68,7 @@ const ENUM_TO_DISPLAY: Record<string, string> = {
   foreign_aid: 'FOREIGN AID',
   tax: 'TAX',
   steal: 'STEAL',
+  exchange: 'EXCHANGE',
 };
 
 export default function Game() {
@@ -80,55 +88,67 @@ export default function Game() {
   const [actionResolvesAt, setActionResolvesAt] = useState<string | null>(null);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
   const [waitingForCardReveal, setWaitingForCardReveal] = useState<WaitingForCardReveal | null>(null);
+  const [waitingForExchange, setWaitingForExchange] = useState<WaitingForExchange | null>(null);
   const [targetSelectionAction, setTargetSelectionAction] = useState<'steal' | 'assassinate' | 'coup' | null>(null);
   const [showBlockCardSelection, setShowBlockCardSelection] = useState(false);
   const [gameStatus, setGameStatus] = useState<string>('in_progress');
   const [rankings, setRankings] = useState<Ranking[]>([]);
 
   // Fetch game state
-  useEffect(() => {
-    async function fetchGameState() {
-      if (!gameId) return;
+  const fetchGameState = useCallback(async () => {
+    if (!gameId) return;
 
-      try {
-        const response = await authFetch(`/games/${gameId}/state`);
-        
-        if (!response.ok) {
-          console.error('Failed to fetch game state:', response.statusText);
-          return;
-        }
+    try {
+      const response = await authFetch(`/games/${gameId}/state`);
 
-        const data = await response.json();
-
-        if (data.players) {
-          const gamePlayers: GamePlayer[] = data.players.map((p: any) => ({
-            uid: p.uid,
-            userName: p.userName,
-            coins: p.coins,
-            cards: p.cards,
-            isLocal: p.uid === user?.uid,
-          }));
-
-          setPlayers(gamePlayers);
-          setPendingAction(data.pendingAction || null);
-          setActionResolvesAt(data.actionResolvesAt || null);
-          setCurrentPlayerIndex(data.currentPlayerIndex ?? 0);
-          setWaitingForCardReveal(data.waitingForCardReveal || null);
-          setGameStatus(data.gameStatus ?? 'in_progress');
-          setRankings(data.rankings ?? []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch game state:', error);
+      if (!response.ok) {
+        console.error('Failed to fetch game state:', response.statusText);
+        return;
       }
-    }
 
-    fetchGameState();
-    
-    // Poll for state updates every 2 seconds
-    const interval = setInterval(fetchGameState, 2000);
-    
-    return () => clearInterval(interval);
+      const data = await response.json();
+
+      if (data.players) {
+        const gamePlayers: GamePlayer[] = data.players.map((p: any) => ({
+          uid: p.uid,
+          userName: p.userName,
+          coins: p.coins,
+          cards: p.cards,
+          isLocal: p.uid === user?.uid,
+        }));
+
+        setPlayers(gamePlayers);
+        setPendingAction(data.pendingAction || null);
+        setActionResolvesAt(data.actionResolvesAt || null);
+        setCurrentPlayerIndex(data.currentPlayerIndex ?? 0);
+        setWaitingForCardReveal(data.waitingForCardReveal || null);
+        setWaitingForExchange(data.waitingForExchange || null);
+        setGameStatus(data.gameStatus ?? 'in_progress');
+        setRankings(data.rankings ?? []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch game state:', error);
+    }
   }, [gameId, user?.uid]);
+
+  // Regular polling every 2 seconds
+  useEffect(() => {
+    fetchGameState();
+    const interval = setInterval(fetchGameState, 2000);
+    return () => clearInterval(interval);
+  }, [fetchGameState]);
+
+  // Immediately re-fetch when the challenge timer expires so the UI updates without waiting for the next poll
+  useEffect(() => {
+    if (!actionResolvesAt) return;
+    const delay = new Date(actionResolvesAt).getTime() - Date.now();
+    if (delay <= 0) {
+      fetchGameState();
+      return;
+    }
+    const timeout = setTimeout(fetchGameState, delay + 300);
+    return () => clearTimeout(timeout);
+  }, [actionResolvesAt, fetchGameState]);
 
   const onAction = useCallback(
     (event: { uid: string; userName: string; action: string }) => {
@@ -310,6 +330,14 @@ export default function Game() {
     });
   }
 
+  async function handleExchangeCards(chosenCardIndices: number[]) {
+    await authFetch(`/games/exchange-cards/${gameId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chosenCardIndices }),
+    });
+  }
+
   return (
     <div className="bg-radial-glow scanlines flex min-h-screen flex-col text-white">
       {/* Victory / game-over overlay */}
@@ -380,7 +408,7 @@ export default function Game() {
       )}
 
       {/* Pending action display */}
-      {pendingAction && actorPlayer && (
+      {pendingAction && actorPlayer && !waitingForCardReveal && (
         <PendingActionDisplay
           pendingAction={pendingAction}
           actorName={actorPlayer.userName}
@@ -409,6 +437,16 @@ export default function Game() {
         <CardRevealNotification
           playerName={revealingPlayer.userName}
           reason={waitingForCardReveal.reason}
+        />
+      )}
+
+      {/* Exchange card selection modal */}
+      {waitingForExchange && waitingForExchange.playerUid === user?.uid && localPlayer && (
+        <ExchangeModal
+          currentCards={localPlayer.cards.filter((c) => !c.revealed && c.card !== null).map((c) => c.card as string)}
+          drawnCards={waitingForExchange.drawnCards}
+          mustKeep={localPlayer.cards.filter((c) => !c.revealed && c.card !== null).length}
+          onExchange={handleExchangeCards}
         />
       )}
 

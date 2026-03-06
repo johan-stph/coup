@@ -33,6 +33,7 @@ import {
 import { processBlock } from '../../game/actions/blockHandler';
 import { processAllow } from '../../game/actions/allowHandler';
 import { processExchangeCards } from '../../game/actions/exchangeHandler';
+import { autoResolveAction } from '../../game/actions/resolutionHandler';
 import { ValidationError } from '../../game/validation/validators';
 
 const router = Router();
@@ -548,7 +549,7 @@ router.post(
 
 // POST /api/games/exchange-cards/:gameCode
 const ExchangeCardsBody = z.object({
-  chosenCardIndices: z.array(z.number().min(0)).length(2),
+  chosenCardIndices: z.array(z.number().min(0)).min(1).max(4),
 });
 
 router.post(
@@ -641,8 +642,21 @@ router.get('/:gameCode/state', async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    let currentState = gameState;
+
+    // If the challenge/block timer expired but the in-memory timeout was lost
+    // (e.g. server restart), resolve the action now so clients don't get stuck.
+    if (
+      currentState.actionResolvesAt &&
+      new Date() > currentState.actionResolvesAt
+    ) {
+      await autoResolveAction(gameCode);
+      // Re-read the now-updated state before building the response
+      currentState = (await GameState.findOne({ gameCode })) ?? currentState;
+    }
+
     // Filter players to show only own unrevealed cards
-    const players = gameState.players.map((player) => {
+    const players = currentState.players.map((player) => {
       if (player.uid === uid) {
         // Show all cards for the requesting player
         return {
@@ -666,7 +680,7 @@ router.get('/:gameCode/state', async (req: AuthRequest, res: Response) => {
     });
 
     // Compute elimination rankings
-    const activePlayers = gameState.players.filter((p) =>
+    const activePlayers = currentState.players.filter((p) =>
       p.cards.some((c) => !c.revealed)
     );
     const rankings: { uid: string; userName: string; rank: number }[] = [];
@@ -677,23 +691,23 @@ router.get('/:gameCode/state', async (req: AuthRequest, res: Response) => {
         rank: 1,
       });
     }
-    const eliminationOrder = gameState.eliminationOrder ?? [];
+    const eliminationOrder = currentState.eliminationOrder ?? [];
     [...eliminationOrder].reverse().forEach((eliminatedUid, i) => {
-      const player = gameState.players.find((p) => p.uid === eliminatedUid);
+      const player = currentState.players.find((p) => p.uid === eliminatedUid);
       if (player) {
         rankings.push({ uid: player.uid, userName: player.userName, rank: i + 2 });
       }
     });
 
     res.json({
-      gameCode: gameState.gameCode,
+      gameCode: currentState.gameCode,
       gameName: game.name,
       players,
-      currentPlayerIndex: gameState.currentPlayerIndex,
-      pendingAction: gameState.pendingAction,
-      actionResolvesAt: gameState.actionResolvesAt?.toISOString(),
-      waitingForCardReveal: gameState.waitingForCardReveal,
-      waitingForExchange: gameState.waitingForExchange,
+      currentPlayerIndex: currentState.currentPlayerIndex,
+      pendingAction: currentState.pendingAction,
+      actionResolvesAt: currentState.actionResolvesAt?.toISOString(),
+      waitingForCardReveal: currentState.waitingForCardReveal,
+      waitingForExchange: currentState.waitingForExchange,
       gameStatus: game.status,
       rankings: rankings.slice(0, 3),
     });

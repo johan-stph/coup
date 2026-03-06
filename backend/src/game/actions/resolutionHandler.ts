@@ -77,6 +77,11 @@ export async function autoResolveAction(gameCode: string): Promise<void> {
 
         if (!gameState.waitingForCardReveal && !gameState.waitingForExchange) {
           await advanceTurn(gameState);
+        } else {
+          // Clear pending action so the challenge window disappears even though
+          // we are still waiting for a card reveal or exchange selection.
+          gameState.pendingAction = undefined;
+          gameState.actionResolvesAt = undefined;
         }
 
         await gameState.save();
@@ -101,6 +106,10 @@ export async function autoResolveAction(gameCode: string): Promise<void> {
 
       if (!gameState.waitingForCardReveal && !gameState.waitingForExchange) {
         await advanceTurn(gameState);
+      } else {
+        // Same as above: clear pending action so any blocking UI disappears.
+        gameState.pendingAction = undefined;
+        gameState.actionResolvesAt = undefined;
       }
 
       await gameState.save();

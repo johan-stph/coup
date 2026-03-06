@@ -237,6 +237,7 @@ export async function executeAction(
       // Draw 2 cards from deck
       if (gameState.deck.length >= 2) {
         const drawnCards = [gameState.deck.pop()!, gameState.deck.pop()!];
+        const mustKeep = actor.cards.filter((c) => !c.revealed).length;
         gameState.waitingForExchange = {
           playerUid: actorUid,
           drawnCards,
@@ -249,7 +250,7 @@ export async function executeAction(
           'exchange_cards_drawn',
           {
             cards: drawnCards,
-            mustChoose: 2,
+            mustChoose: mustKeep,
           }
         );
       }

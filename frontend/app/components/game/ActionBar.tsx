@@ -68,6 +68,14 @@ export default function ActionBar({
               STEAL
               <span className="block text-[8px] opacity-70">(CAPTAIN)</span>
             </button>
+            <button
+              onClick={() => onAction('EXCHANGE')}
+              disabled={disabled}
+              className="btn-glow w-32 border border-neon-red py-3 text-center font-display text-xs font-semibold tracking-widest text-neon-red transition-all hover:bg-neon-red/10 hover:cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              EXCHANGE
+              <span className="block text-[8px] opacity-70">(AMBASSADOR)</span>
+            </button>
           </>
         )}
       </div>

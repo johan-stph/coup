@@ -26,11 +26,6 @@ export async function processExchangeCards(
     throw new ValidationError('Not your turn to exchange', 403);
   }
 
-  // Validate player chose exactly 2 cards
-  if (chosenCardIndices.length !== 2) {
-    throw new ValidationError('Must choose exactly 2 cards', 400);
-  }
-
   const helper = new GameStateHelper(gameState);
   const player = helper.getPlayerByUid(playerUid)!;
 
@@ -38,6 +33,12 @@ export async function processExchangeCards(
   const currentCards = player.cards.filter((c) => !c.revealed);
   const drawnCards = gameState.waitingForExchange.drawnCards;
   const allAvailableCards = [...currentCards.map((c) => c.card), ...drawnCards];
+
+  // Validate player chose exactly as many cards as they currently hold
+  const mustKeep = currentCards.length;
+  if (chosenCardIndices.length !== mustKeep) {
+    throw new ValidationError(`Must choose exactly ${mustKeep} card${mustKeep !== 1 ? 's' : ''}`, 400);
+  }
 
   // Validate indices
   for (const index of chosenCardIndices) {
