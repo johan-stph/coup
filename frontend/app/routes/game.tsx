@@ -60,7 +60,9 @@ const ACTION_TO_ENUM: Record<string, string> = {
   'FOREIGN AID': 'foreign_aid',
   TAX: 'tax',
   STEAL: 'steal',
+  ASSASSINATE: 'assassinate',
   EXCHANGE: 'exchange',
+  COUP: 'coup',
 };
 
 const ENUM_TO_DISPLAY: Record<string, string> = {
@@ -68,7 +70,9 @@ const ENUM_TO_DISPLAY: Record<string, string> = {
   foreign_aid: 'FOREIGN AID',
   tax: 'TAX',
   steal: 'STEAL',
+  assassinate: 'ASSASSINATE',
   exchange: 'EXCHANGE',
+  coup: 'COUP',
 };
 
 export default function Game() {
@@ -404,6 +408,8 @@ export default function Game() {
           canBlock={canBlock}
           blockButtonText={blockButtonText}
           disabled={canBlock ? false : !isMyTurn || !!pendingAction}
+          playerCoins={localPlayer?.coins ?? 0}
+          mustCoup={(localPlayer?.coins ?? 0) >= 10}
         />
       )}
 
