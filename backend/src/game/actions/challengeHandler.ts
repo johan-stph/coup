@@ -72,6 +72,9 @@ export async function processChallenge(
       });
     }
 
+    // Clear auto-resolve timer so it doesn't fire while waiting for card reveal
+    gameState.actionResolvesAt = undefined;
+
     // Save state and wait for card reveal
     // The continuation will be handled in revealCard()
     await gameState.save();
@@ -111,6 +114,9 @@ export async function processChallenge(
         loserUid: challengerUid,
       });
     }
+
+    // Clear auto-resolve timer so it doesn't fire while waiting for card reveal
+    gameState.actionResolvesAt = undefined;
 
     // Save state and wait for card reveal
     // The continuation will be handled in revealCard()
