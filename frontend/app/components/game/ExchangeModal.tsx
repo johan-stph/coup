@@ -50,7 +50,8 @@ export default function ExchangeModal({
               CHOOSE {mustKeep} CARD{mustKeep !== 1 ? 'S' : ''} TO KEEP
             </h2>
             <p className="text-center font-mono text-xs text-text-muted">
-              {selectedIndices.length}/{mustKeep} selected — unchosen cards return to the deck
+              {selectedIndices.length}/{mustKeep} selected — unchosen cards
+              return to the deck
             </p>
           </div>
 
@@ -58,14 +59,17 @@ export default function ExchangeModal({
           <div className="flex flex-wrap justify-center gap-4">
             {allCards.map(({ card, source }, index) => {
               const isSelected = selectedIndices.includes(index);
-              const isDisabled = !isSelected && selectedIndices.length >= mustKeep;
+              const isDisabled =
+                !isSelected && selectedIndices.length >= mustKeep;
               return (
                 <button
                   key={index}
                   onClick={() => toggleCard(index)}
                   disabled={isDisabled}
                   className={`corner-brackets transition-all hover:scale-105 ${
-                    isDisabled ? 'opacity-40 cursor-not-allowed' : 'hover:cursor-pointer'
+                    isDisabled
+                      ? 'opacity-40 cursor-not-allowed'
+                      : 'hover:cursor-pointer'
                   } ${isSelected ? 'shadow-glow' : ''}`}
                 >
                   <div

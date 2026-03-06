@@ -88,12 +88,18 @@ export default function Game() {
     playerName: string;
     action: string;
   } | null>(null);
-  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(
+    null
+  );
   const [actionResolvesAt, setActionResolvesAt] = useState<string | null>(null);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
-  const [waitingForCardReveal, setWaitingForCardReveal] = useState<WaitingForCardReveal | null>(null);
-  const [waitingForExchange, setWaitingForExchange] = useState<WaitingForExchange | null>(null);
-  const [targetSelectionAction, setTargetSelectionAction] = useState<'steal' | 'assassinate' | 'coup' | null>(null);
+  const [waitingForCardReveal, setWaitingForCardReveal] =
+    useState<WaitingForCardReveal | null>(null);
+  const [waitingForExchange, setWaitingForExchange] =
+    useState<WaitingForExchange | null>(null);
+  const [targetSelectionAction, setTargetSelectionAction] = useState<
+    'steal' | 'assassinate' | 'coup' | null
+  >(null);
   const [showBlockCardSelection, setShowBlockCardSelection] = useState(false);
   const [gameStatus, setGameStatus] = useState<string>('in_progress');
   const [rankings, setRankings] = useState<Ranking[]>([]);
@@ -194,7 +200,7 @@ export default function Game() {
   const isLocalEliminated = localPlayer
     ? localPlayer.cards.length > 0 && localPlayer.cards.every((c) => c.revealed)
     : false;
-  
+
   // Get actor and blocker names for pending action
   const actorPlayer = pendingAction
     ? players.find((p) => p.uid === pendingAction.actorUid)
@@ -209,7 +215,8 @@ export default function Game() {
     ? players.find((p) => p.uid === waitingForCardReveal.playerUid)
     : null;
   const isActorOfPendingAction = pendingAction?.actorUid === user?.uid;
-  const isBlockerOfPendingAction = pendingAction?.blockingPlayerUid === user?.uid;
+  const isBlockerOfPendingAction =
+    pendingAction?.blockingPlayerUid === user?.uid;
   const isTargetOfPendingAction = pendingAction?.targetUid === user?.uid;
 
   // Check if user can block current action
@@ -390,7 +397,9 @@ export default function Game() {
         </div>
 
         {/* Local player area */}
-        {localPlayer && <LocalPlayerArea player={localPlayer} isMyTurn={isMyTurn} />}
+        {localPlayer && (
+          <LocalPlayerArea player={localPlayer} isMyTurn={isMyTurn} />
+        )}
       </main>
 
       {/* Fixed action bar or spectator indicator */}
@@ -425,36 +434,49 @@ export default function Game() {
           isTarget={isTargetOfPendingAction}
           resolvesAt={actionResolvesAt}
           onChallenge={isLocalEliminated ? undefined : handleChallenge}
-          onChallengeBlock={isLocalEliminated ? undefined : handleChallengeBlock}
+          onChallengeBlock={
+            isLocalEliminated ? undefined : handleChallengeBlock
+          }
         />
       )}
 
       {/* Reveal card modal */}
-      {waitingForCardReveal && waitingForCardReveal.playerUid === user?.uid && localPlayer && (
-        <RevealCardModal
-          cards={localPlayer.cards}
-          reason={waitingForCardReveal.reason}
-          onReveal={handleRevealCard}
-        />
-      )}
+      {waitingForCardReveal &&
+        waitingForCardReveal.playerUid === user?.uid &&
+        localPlayer && (
+          <RevealCardModal
+            cards={localPlayer.cards}
+            reason={waitingForCardReveal.reason}
+            onReveal={handleRevealCard}
+          />
+        )}
 
       {/* Card reveal notification for other players */}
-      {waitingForCardReveal && waitingForCardReveal.playerUid !== user?.uid && revealingPlayer && (
-        <CardRevealNotification
-          playerName={revealingPlayer.userName}
-          reason={waitingForCardReveal.reason}
-        />
-      )}
+      {waitingForCardReveal &&
+        waitingForCardReveal.playerUid !== user?.uid &&
+        revealingPlayer && (
+          <CardRevealNotification
+            playerName={revealingPlayer.userName}
+            reason={waitingForCardReveal.reason}
+          />
+        )}
 
       {/* Exchange card selection modal */}
-      {waitingForExchange && waitingForExchange.playerUid === user?.uid && localPlayer && (
-        <ExchangeModal
-          currentCards={localPlayer.cards.filter((c) => !c.revealed && c.card !== null).map((c) => c.card as string)}
-          drawnCards={waitingForExchange.drawnCards}
-          mustKeep={localPlayer.cards.filter((c) => !c.revealed && c.card !== null).length}
-          onExchange={handleExchangeCards}
-        />
-      )}
+      {waitingForExchange &&
+        waitingForExchange.playerUid === user?.uid &&
+        localPlayer && (
+          <ExchangeModal
+            currentCards={localPlayer.cards
+              .filter((c) => !c.revealed && c.card !== null)
+              .map((c) => c.card as string)}
+            drawnCards={waitingForExchange.drawnCards}
+            mustKeep={
+              localPlayer.cards.filter((c) => !c.revealed && c.card !== null)
+                .length
+            }
+            onExchange={handleExchangeCards}
+          />
+        )}
 
       {/* Target selection modal */}
       {targetSelectionAction && (

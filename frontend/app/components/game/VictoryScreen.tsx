@@ -28,7 +28,11 @@ const RANK_GLOW: Record<number, string> = {
   3: 'border-white/20',
 };
 
-export default function VictoryScreen({ rankings, localPlayerUid, onReturn }: VictoryScreenProps) {
+export default function VictoryScreen({
+  rankings,
+  localPlayerUid,
+  onReturn,
+}: VictoryScreenProps) {
   const winner = rankings.find((r) => r.rank === 1);
   const isLocalWinner = winner?.uid === localPlayerUid;
 
@@ -50,10 +54,12 @@ export default function VictoryScreen({ rankings, localPlayerUid, onReturn }: Vi
         )}
         {winner && (
           <p className="mt-1 font-mono text-sm text-white">
-            {isLocalWinner ? 'You outlasted everyone.' : (
+            {isLocalWinner ? (
+              'You outlasted everyone.'
+            ) : (
               <span>
-                <span className="text-neon-cyan">{winner.userName}</span>
-                {' '}wins the round.
+                <span className="text-neon-cyan">{winner.userName}</span> wins
+                the round.
               </span>
             )}
           </p>

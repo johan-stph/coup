@@ -35,9 +35,7 @@ export default function TargetSelectionModal({
 
   // Filter out current player and eliminated players
   const validTargets = players.filter(
-    (p) =>
-      p.uid !== currentPlayerUid &&
-      p.cards.some((c) => !c.revealed) // Has at least one unrevealed card
+    (p) => p.uid !== currentPlayerUid && p.cards.some((c) => !c.revealed) // Has at least one unrevealed card
   );
 
   const handleConfirm = () => {
@@ -106,7 +104,9 @@ export default function TargetSelectionModal({
                   {/* Player name */}
                   <span
                     className={`font-display text-sm font-semibold tracking-wider ${
-                      selectedUid === player.uid ? 'text-neon-red' : 'text-white'
+                      selectedUid === player.uid
+                        ? 'text-neon-red'
+                        : 'text-white'
                     }`}
                   >
                     {player.userName}

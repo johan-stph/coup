@@ -83,7 +83,9 @@ export default function ActionBar({
               className={`${redBtn} w-24`}
             >
               ASSASSINATE
-              <span className="block text-[7px] opacity-70">(ASSASSIN · 3¢)</span>
+              <span className="block text-[7px] opacity-70">
+                (ASSASSIN · 3¢)
+              </span>
             </button>
             <button
               onClick={() => onAction('EXCHANGE')}

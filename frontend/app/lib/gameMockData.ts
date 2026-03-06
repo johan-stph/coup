@@ -19,7 +19,6 @@ export interface GameEvent {
   message: string;
 }
 
-
 // TODO: Replace with real WebSocket state
 export function getInitialEvents(): GameEvent[] {
   const now = Date.now();

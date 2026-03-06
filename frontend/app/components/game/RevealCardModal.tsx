@@ -74,9 +74,7 @@ export default function RevealCardModal({
                   {/* Card icon */}
                   <div
                     className={`flex h-16 w-16 items-center justify-center rounded-full ${
-                      selectedIndex === index
-                        ? 'bg-neon-red/30'
-                        : 'bg-surface'
+                      selectedIndex === index ? 'bg-neon-red/30' : 'bg-surface'
                     }`}
                   >
                     <svg

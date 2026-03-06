@@ -57,7 +57,10 @@ function ChallengeCountdown({ resolvesAt }: { resolvesAt: string }) {
   const isUrgent = seconds <= 3;
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: 44, height: 44 }}>
+    <div
+      className="relative flex items-center justify-center"
+      style={{ width: 44, height: 44 }}
+    >
       <svg width="44" height="44" className="-rotate-90">
         {/* Track */}
         <circle
@@ -94,7 +97,10 @@ function ChallengeCountdown({ resolvesAt }: { resolvesAt: string }) {
 
 function BlockWaitingIndicator() {
   return (
-    <div className="relative flex items-center justify-center" style={{ width: 44, height: 44 }}>
+    <div
+      className="relative flex items-center justify-center"
+      style={{ width: 44, height: 44 }}
+    >
       <svg width="44" height="44">
         {/* Outer pulsing ring */}
         <circle
@@ -134,12 +140,16 @@ export default function PendingActionDisplay({
   onChallenge,
   onChallengeBlock,
 }: PendingActionDisplayProps) {
-  const actionDisplay = ACTION_DISPLAY[pendingAction.actionType] || pendingAction.actionType.toUpperCase();
+  const actionDisplay =
+    ACTION_DISPLAY[pendingAction.actionType] ||
+    pendingAction.actionType.toUpperCase();
   const phase = pendingAction.phase;
-  const blockCardDisplay = pendingAction.blockClaimedCard?.toUpperCase() || 'CARD';
+  const blockCardDisplay =
+    pendingAction.blockClaimedCard?.toUpperCase() || 'CARD';
   const hasTarget = pendingAction.targetUid && targetName;
 
-  const isChallengePhase = phase === 'awaiting_challenge' || phase === 'awaiting_block_challenge';
+  const isChallengePhase =
+    phase === 'awaiting_challenge' || phase === 'awaiting_block_challenge';
   const isBlockPhase = phase === 'awaiting_block';
 
   return (
@@ -160,9 +170,7 @@ export default function PendingActionDisplay({
             )}
 
             {/* Pulsing indicator for block phase (no timer) */}
-            {isBlockPhase && (
-              <BlockWaitingIndicator />
-            )}
+            {isBlockPhase && <BlockWaitingIndicator />}
           </div>
 
           {/* Actor and action */}
@@ -171,7 +179,9 @@ export default function PendingActionDisplay({
               <span className="font-display text-sm font-bold tracking-wider text-white">
                 {blockerName || 'Someone'}
               </span>
-              <span className="font-mono text-xs text-text-muted">blocked with</span>
+              <span className="font-mono text-xs text-text-muted">
+                blocked with
+              </span>
               <span className="logo-glow font-display text-2xl font-black tracking-wider text-neon-red">
                 {blockCardDisplay}
               </span>
@@ -181,14 +191,20 @@ export default function PendingActionDisplay({
               <span className="font-display text-sm font-bold tracking-wider text-white">
                 {actorName}
               </span>
-              <span className="font-mono text-xs text-text-muted">declared</span>
+              <span className="font-mono text-xs text-text-muted">
+                declared
+              </span>
               <span className="logo-glow font-display text-2xl font-black tracking-wider text-neon-red">
                 {actionDisplay}
               </span>
               {hasTarget && (
                 <>
-                  <span className="font-mono text-xs text-text-muted">targeting</span>
-                  <span className={`font-display text-lg font-semibold tracking-wider ${isTarget ? 'text-neon-red' : 'text-neon-cyan'}`}>
+                  <span className="font-mono text-xs text-text-muted">
+                    targeting
+                  </span>
+                  <span
+                    className={`font-display text-lg font-semibold tracking-wider ${isTarget ? 'text-neon-red' : 'text-neon-cyan'}`}
+                  >
                     {isTarget ? 'YOU' : targetName}
                   </span>
                 </>
@@ -197,24 +213,29 @@ export default function PendingActionDisplay({
           )}
 
           {/* Challenge button for non-actors during challenge phase */}
-          {!isActor && pendingAction.canBeChallenged && phase === 'awaiting_challenge' && onChallenge && (
-            <button
-              onClick={onChallenge}
-              className="btn-glow mt-2 border border-neon-cyan px-8 py-2 text-center font-display text-xs font-semibold tracking-widest text-neon-cyan transition-all hover:bg-neon-cyan/10 hover:cursor-pointer"
-            >
-              CHALLENGE
-            </button>
-          )}
+          {!isActor &&
+            pendingAction.canBeChallenged &&
+            phase === 'awaiting_challenge' &&
+            onChallenge && (
+              <button
+                onClick={onChallenge}
+                className="btn-glow mt-2 border border-neon-cyan px-8 py-2 text-center font-display text-xs font-semibold tracking-widest text-neon-cyan transition-all hover:bg-neon-cyan/10 hover:cursor-pointer"
+              >
+                CHALLENGE
+              </button>
+            )}
 
           {/* Challenge button for non-blockers during block challenge phase */}
-          {!isBlocker && phase === 'awaiting_block_challenge' && onChallengeBlock && (
-            <button
-              onClick={onChallengeBlock}
-              className="btn-glow mt-2 border border-neon-cyan px-8 py-2 text-center font-display text-xs font-semibold tracking-widest text-neon-cyan transition-all hover:bg-neon-cyan/10 hover:cursor-pointer"
-            >
-              CHALLENGE BLOCK
-            </button>
-          )}
+          {!isBlocker &&
+            phase === 'awaiting_block_challenge' &&
+            onChallengeBlock && (
+              <button
+                onClick={onChallengeBlock}
+                className="btn-glow mt-2 border border-neon-cyan px-8 py-2 text-center font-display text-xs font-semibold tracking-widest text-neon-cyan transition-all hover:bg-neon-cyan/10 hover:cursor-pointer"
+              >
+                CHALLENGE BLOCK
+              </button>
+            )}
 
           {/* Waiting message for actor or blocker */}
           {(isActor || isBlocker) && (

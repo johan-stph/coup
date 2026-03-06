@@ -5,7 +5,10 @@ interface LocalPlayerAreaProps {
   isMyTurn: boolean;
 }
 
-export default function LocalPlayerArea({ player, isMyTurn }: LocalPlayerAreaProps) {
+export default function LocalPlayerArea({
+  player,
+  isMyTurn,
+}: LocalPlayerAreaProps) {
   return (
     <div className="flex items-center justify-between border-t border-surface-light bg-surface/50 px-6 py-4">
       {/* Left — operative info */}
