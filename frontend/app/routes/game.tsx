@@ -5,7 +5,6 @@ import PlayerCard from '~/components/game/PlayerCard';
 import LocalPlayerArea from '~/components/game/LocalPlayerArea';
 import EventLog from '~/components/game/EventLog';
 import ActionBar from '~/components/game/ActionBar';
-import ActionAnnouncement from '~/components/game/ActionAnnouncement';
 import PendingActionDisplay from '~/components/game/PendingActionDisplay';
 import RevealCardModal from '~/components/game/RevealCardModal';
 import CardRevealNotification from '~/components/game/CardRevealNotification';
@@ -85,10 +84,6 @@ export default function Game() {
 
   const [players, setPlayers] = useState<GamePlayer[]>([]);
   const [events, setEvents] = useState(() => getInitialEvents());
-  const [announcement, setAnnouncement] = useState<{
-    playerName: string;
-    action: string;
-  } | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(
     null
   );
@@ -164,13 +159,12 @@ export default function Game() {
   const onAction = useCallback(
     (event: { uid: string; userName: string; action: string }) => {
       const displayAction = ENUM_TO_DISPLAY[event.action] ?? event.action;
-      setAnnouncement({ playerName: event.userName, action: displayAction });
       setEvents((prev) => [
         ...prev,
         createActionEvent(event.userName, displayAction),
       ]);
     },
-    []
+    [user?.uid]
   );
 
   useGameSSE({
@@ -500,15 +494,6 @@ export default function Game() {
           blockingCards={['captain', 'ambassador']}
           onSelect={handleBlockCardSelect}
           onCancel={() => setShowBlockCardSelection(false)}
-        />
-      )}
-
-      {/* Action announcement overlay */}
-      {announcement && (
-        <ActionAnnouncement
-          playerName={announcement.playerName}
-          action={announcement.action}
-          onDismiss={() => setAnnouncement(null)}
         />
       )}
     </div>
