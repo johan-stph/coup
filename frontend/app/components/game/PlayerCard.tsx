@@ -1,4 +1,5 @@
 import type { GamePlayer } from '~/lib/gameMockData';
+import { CARD_IMAGES } from '~/lib/cardImages';
 
 interface PlayerCardProps {
   player: GamePlayer;
@@ -43,26 +44,36 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         {player.coins}
       </span>
 
-      {/* Face-down cards */}
-      <div className="flex gap-1.5">
+      {/* Influence cards */}
+      <div className="flex gap-2">
         {player.cards.map((cardData, i) => (
           <div
             key={i}
-            className="flex h-11 w-8 flex-col items-center justify-center rounded-sm border border-neon-red-dim bg-surface-light"
+            className={`relative h-20 w-14 overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.7)] ${
+              cardData.revealed
+                ? 'border border-neon-red/40'
+                : 'border border-surface-light'
+            }`}
           >
-            {cardData.revealed ? (
+            {cardData.revealed && cardData.card && CARD_IMAGES[cardData.card] ? (
               <>
-                <span className="font-mono text-[6px] text-text-muted line-through">
-                  {cardData.card?.substring(0, 3).toUpperCase()}
-                </span>
-                <span className="font-mono text-[5px] text-neon-red">OUT</span>
+                <img
+                  src={CARD_IMAGES[cardData.card]}
+                  alt={cardData.card}
+                  className="absolute inset-0 h-full w-full object-cover grayscale opacity-30"
+                />
+                <div className="absolute inset-0 bg-neon-red/10" />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent px-1 pb-1 pt-3">
+                  <span className="block font-mono text-[5px] tracking-widest text-neon-red">OUT</span>
+                </div>
               </>
-            ) : cardData.card ? (
-              <span className="font-mono text-[7px] text-neon-cyan">
-                {cardData.card.substring(0, 3).toUpperCase()}
-              </span>
             ) : (
-              <span className="font-mono text-xs text-text-muted">?</span>
+              /* Face-down card back */
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface-light">
+                <div className="h-8 w-8 rounded-sm border border-surface opacity-40"
+                  style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)' }}
+                />
+              </div>
             )}
           </div>
         ))}

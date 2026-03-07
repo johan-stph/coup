@@ -13,6 +13,7 @@ import ExchangeModal from '~/components/game/ExchangeModal';
 import TargetSelectionModal from '~/components/game/TargetSelectionModal';
 import BlockCardSelectionModal from '~/components/game/BlockCardSelectionModal';
 import VictoryScreen from '~/components/game/VictoryScreen';
+import DeckTracker from '~/components/game/DeckTracker';
 import { useGameSSE } from '~/hooks/useGameSSE';
 import { authFetch } from '~/lib/authFetch';
 import {
@@ -351,6 +352,9 @@ export default function Game() {
 
   return (
     <div className="bg-radial-glow scanlines flex min-h-screen flex-col text-white">
+      {/* Deck tracker */}
+      <DeckTracker players={players} />
+
       {/* Victory / game-over overlay */}
       {gameStatus === 'finished' && (
         <VictoryScreen
