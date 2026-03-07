@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface ActionAnnouncementProps {
   playerName: string;
@@ -12,6 +12,7 @@ export default function ActionAnnouncement({
   onDismiss,
 }: ActionAnnouncementProps) {
   const [phase, setPhase] = useState<'in' | 'visible' | 'out'>('in');
+  const onDismissRef = useRef(onDismiss);
 
   useEffect(() => {
     // fade in → visible after a tick
@@ -21,14 +22,14 @@ export default function ActionAnnouncement({
     const fadeOut = setTimeout(() => setPhase('out'), 2000);
 
     // dismiss after fade out completes (500ms)
-    const dismiss = setTimeout(() => onDismiss(), 2500);
+    const dismiss = setTimeout(() => onDismissRef.current(), 2500);
 
     return () => {
       clearTimeout(fadeIn);
       clearTimeout(fadeOut);
       clearTimeout(dismiss);
     };
-  }, [onDismiss]);
+  }, []);
 
   return (
     <div

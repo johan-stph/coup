@@ -17,6 +17,8 @@ export interface GameEvent {
   id: string;
   timestamp: string;
   message: string;
+  playerName?: string;
+  actionName?: string;
 }
 
 // TODO: Replace with real WebSocket state
@@ -49,6 +51,8 @@ export function createActionEvent(
   return {
     id: crypto.randomUUID(),
     timestamp: new Date().toLocaleTimeString(),
-    message: `${playerName} executed ${actionName}.`,
+    message: `${playerName} executes ${actionName}`,
+    playerName,
+    actionName,
   };
 }

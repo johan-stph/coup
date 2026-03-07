@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { auth } from '~/auth/firebase';
 import { API_URL } from '~/config/environment';
 
+interface ActionDeclaredPayload {
+  actorUid: string;
+  actorUserName: string;
+  action: string;
+}
+
 interface ActionEvent {
   uid: string;
   userName: string;
@@ -64,10 +70,10 @@ export function useGameSSE({
       // No-op listener to silence the initial state event
       es.addEventListener('player_joined', () => {});
 
-      es.addEventListener('action_performed', (event) => {
+      es.addEventListener('action_declared', (event) => {
         if (!mountedRef.current) return;
-        const data: ActionEvent = JSON.parse(event.data);
-        onActionRef.current(data);
+        const data: ActionDeclaredPayload = JSON.parse(event.data);
+        onActionRef.current({ uid: data.actorUid, userName: data.actorUserName, action: data.action });
       });
 
       es.onopen = () => {

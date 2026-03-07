@@ -42,6 +42,17 @@ export async function processAction(
   const helper = new GameStateHelper(gameState);
   const actor = helper.getPlayerByUid(uid)!;
 
+  // Broadcast to all players that an action was declared (used by event log)
+  broadcast(gameCode, 'action_declared', {
+    actorUid: uid,
+    actorUserName: actor.userName,
+    action: actionType,
+    targetUid,
+    claimedCard: config.card,
+    canBeChallenged: config.canBeChallenged,
+    canBeBlocked: config.canBeBlocked,
+  });
+
   // Check if action can be challenged or blocked
   if (config.canBeChallenged || config.canBeBlocked) {
     // For assassination, deduct coins upfront (like coup)
@@ -80,18 +91,6 @@ export async function processAction(
     };
 
     await gameState.save();
-
-    // Broadcast action declared
-    broadcast(gameCode, 'action_declared', {
-      actorUid: uid,
-      actorUserName: actor.userName,
-      action: actionType,
-      targetUid,
-      claimedCard: config.card,
-      canBeChallenged: config.canBeChallenged,
-      canBeBlocked: config.canBeBlocked,
-      resolvesAt: gameState.actionResolvesAt,
-    });
 
     // Schedule auto-resolution only for timed challenge phase
     if (initialPhase === 'awaiting_challenge') {
