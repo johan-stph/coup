@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CARD_IMAGES } from '~/lib/cardImages';
 
 interface ExchangeModalProps {
   currentCards: string[];
@@ -73,56 +74,53 @@ export default function ExchangeModal({
                   } ${isSelected ? 'shadow-glow' : ''}`}
                 >
                   <div
-                    className={`flex h-40 w-28 flex-col items-center justify-center gap-2 transition-all border-2 ${
+                    className={`relative h-52 w-36 overflow-hidden transition-all shadow-[0_12px_40px_rgba(0,0,0,0.8)] ${
                       isSelected
-                        ? 'bg-neon-cyan/20 border-neon-cyan'
-                        : 'bg-surface-light border-surface-light'
+                        ? 'border-2 border-neon-cyan shadow-[0_0_24px_rgba(0,255,255,0.3)]'
+                        : 'border-2 border-surface-light'
                     }`}
                   >
-                    {/* Source label */}
-                    <span
-                      className={`font-mono text-[8px] tracking-widest ${
-                        isSelected ? 'text-neon-cyan' : 'text-text-muted'
-                      }`}
-                    >
-                      {source === 'hand' ? 'IN HAND' : 'DRAWN'}
-                    </span>
-
-                    {/* Card icon */}
-                    <div
-                      className={`flex h-14 w-14 items-center justify-center rounded-full ${
-                        isSelected ? 'bg-neon-cyan/30' : 'bg-surface'
-                      }`}
-                    >
-                      <svg
-                        className={`h-7 w-7 ${isSelected ? 'text-neon-cyan' : 'text-text-muted'}`}
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z"
-                        />
-                      </svg>
-                    </div>
-
-                    {/* Card name */}
-                    <span
-                      className={`font-mono text-sm tracking-widest ${
-                        isSelected ? 'text-neon-cyan' : 'text-white'
-                      }`}
-                    >
-                      {card.toUpperCase()}
-                    </span>
-
-                    {isSelected && (
-                      <span className="font-mono text-[8px] tracking-widest text-neon-cyan">
-                        KEEP
-                      </span>
+                    {/* Full-bleed character image */}
+                    {CARD_IMAGES[card] ? (
+                      <img
+                        src={CARD_IMAGES[card]}
+                        alt={card}
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-surface-light" />
                     )}
+                    {/* Selection glow overlay */}
+                    {isSelected && (
+                      <div className="absolute inset-0 bg-neon-cyan/15" />
+                    )}
+                    {/* Top source badge */}
+                    <div className="absolute top-2 left-2">
+                      <span
+                        className={`font-mono text-[7px] tracking-widest px-1.5 py-0.5 ${
+                          isSelected
+                            ? 'bg-neon-cyan/30 text-neon-cyan'
+                            : 'bg-black/60 text-text-muted'
+                        }`}
+                      >
+                        {source === 'hand' ? 'IN HAND' : 'DRAWN'}
+                      </span>
+                    </div>
+                    {/* Bottom label gradient */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent px-3 pb-3 pt-8">
+                      <span
+                        className={`block font-mono text-xs tracking-widest ${
+                          isSelected ? 'text-neon-cyan' : 'text-white'
+                        }`}
+                      >
+                        {card.toUpperCase()}
+                      </span>
+                      {isSelected && (
+                        <span className="block font-mono text-[8px] tracking-widest text-neon-cyan">
+                          KEEP
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </button>
               );

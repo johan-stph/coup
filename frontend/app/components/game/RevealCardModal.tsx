@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { PlayerCard } from '~/lib/gameMockData';
+import { CARD_IMAGES } from '~/lib/cardImages';
 
 interface RevealCardModalProps {
   cards: PlayerCard[];
@@ -65,52 +66,41 @@ export default function RevealCardModal({
                 }`}
               >
                 <div
-                  className={`flex h-40 w-28 flex-col items-center justify-center gap-2 transition-all ${
+                  className={`relative h-56 w-36 overflow-hidden transition-all shadow-[0_12px_40px_rgba(0,0,0,0.8)] ${
                     selectedIndex === index
-                      ? 'bg-neon-red/20 border-2 border-neon-red'
-                      : 'bg-surface-light border-2 border-surface-light'
+                      ? 'border-2 border-neon-red shadow-[0_0_24px_rgba(255,0,60,0.4)]'
+                      : 'border-2 border-surface-light'
                   }`}
                 >
-                  {/* Card icon */}
-                  <div
-                    className={`flex h-16 w-16 items-center justify-center rounded-full ${
-                      selectedIndex === index ? 'bg-neon-red/30' : 'bg-surface'
-                    }`}
-                  >
-                    <svg
-                      className={`h-8 w-8 ${
-                        selectedIndex === index
-                          ? 'text-neon-red'
-                          : 'text-text-muted'
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z"
-                      />
-                    </svg>
-                  </div>
-
-                  {/* Card name */}
-                  <span
-                    className={`font-mono text-sm tracking-widest ${
-                      selectedIndex === index ? 'text-neon-red' : 'text-white'
-                    }`}
-                  >
-                    {card.card?.toUpperCase() || 'UNKNOWN'}
-                  </span>
-
-                  {/* Selection indicator */}
-                  {selectedIndex === index && (
-                    <span className="font-mono text-[8px] tracking-widest text-neon-red">
-                      SELECTED
-                    </span>
+                  {/* Full-bleed character image */}
+                  {card.card && CARD_IMAGES[card.card] ? (
+                    <img
+                      src={CARD_IMAGES[card.card]}
+                      alt={card.card}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-surface-light" />
                   )}
+                  {/* Selection glow overlay */}
+                  {selectedIndex === index && (
+                    <div className="absolute inset-0 bg-neon-red/15" />
+                  )}
+                  {/* Bottom label gradient */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent px-3 pb-3 pt-8">
+                    <span
+                      className={`block font-mono text-xs tracking-widest ${
+                        selectedIndex === index ? 'text-neon-red' : 'text-white'
+                      }`}
+                    >
+                      {card.card?.toUpperCase() || 'UNKNOWN'}
+                    </span>
+                    {selectedIndex === index && (
+                      <span className="block font-mono text-[8px] tracking-widest text-neon-red">
+                        SELECTED
+                      </span>
+                    )}
+                  </div>
                 </div>
               </button>
             ))}
