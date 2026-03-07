@@ -55,7 +55,9 @@ export default function PlayerCard({ player }: PlayerCardProps) {
                 : 'border border-surface-light'
             }`}
           >
-            {cardData.revealed && cardData.card && CARD_IMAGES[cardData.card] ? (
+            {cardData.revealed &&
+            cardData.card &&
+            CARD_IMAGES[cardData.card] ? (
               <>
                 <img
                   src={CARD_IMAGES[cardData.card]}
@@ -64,14 +66,20 @@ export default function PlayerCard({ player }: PlayerCardProps) {
                 />
                 <div className="absolute inset-0 bg-neon-red/10" />
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent px-1 pb-1 pt-3">
-                  <span className="block font-mono text-[5px] tracking-widest text-neon-red">OUT</span>
+                  <span className="block font-mono text-[5px] tracking-widest text-neon-red">
+                    OUT
+                  </span>
                 </div>
               </>
             ) : (
               /* Face-down card back */
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface-light">
-                <div className="h-8 w-8 rounded-sm border border-surface opacity-40"
-                  style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)' }}
+                <div
+                  className="h-8 w-8 rounded-sm border border-surface opacity-40"
+                  style={{
+                    backgroundImage:
+                      'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)',
+                  }}
                 />
               </div>
             )}

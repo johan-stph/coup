@@ -52,7 +52,9 @@ export default function DeckTracker({ players }: DeckTrackerProps) {
         <span className="font-mono text-[8px] tracking-widest text-text-muted [writing-mode:vertical-rl]">
           DECK
         </span>
-        <span className="font-mono text-[9px] text-neon-cyan">{totalRemaining}</span>
+        <span className="font-mono text-[9px] text-neon-cyan">
+          {totalRemaining}
+        </span>
       </button>
 
       {/* Slide-in panel */}
