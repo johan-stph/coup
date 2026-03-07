@@ -496,7 +496,6 @@ export default function Game() {
           onCancel={() => setShowBlockCardSelection(false)}
         />
       )}
-
     </div>
   );
 }

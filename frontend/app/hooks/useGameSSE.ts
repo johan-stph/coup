@@ -73,7 +73,11 @@ export function useGameSSE({
       es.addEventListener('action_declared', (event) => {
         if (!mountedRef.current) return;
         const data: ActionDeclaredPayload = JSON.parse(event.data);
-        onActionRef.current({ uid: data.actorUid, userName: data.actorUserName, action: data.action });
+        onActionRef.current({
+          uid: data.actorUid,
+          userName: data.actorUserName,
+          action: data.action,
+        });
       });
 
       es.onopen = () => {
