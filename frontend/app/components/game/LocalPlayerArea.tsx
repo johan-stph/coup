@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import type { GamePlayer } from '~/lib/gameMockData';
 import { CARD_IMAGES } from '~/lib/cardImages';
+import CardInfoModal from './CardInfoModal';
 
 interface LocalPlayerAreaProps {
   player: GamePlayer;
@@ -10,8 +12,11 @@ export default function LocalPlayerArea({
   player,
   isMyTurn,
 }: LocalPlayerAreaProps) {
+  const [selectedCard, setSelectedCard] = useState<string | null>(null);
+
   return (
-    <div className="flex items-center justify-between border-t border-surface-light bg-surface/50 px-6 py-4">
+    <>
+      <div className="flex items-center justify-between border-t border-surface-light bg-surface/50 px-6 py-4">
       {/* Left — operative info */}
       <div className="flex flex-col gap-1">
         <span className="font-mono text-[10px] tracking-[0.3em] text-text-muted">
@@ -41,7 +46,13 @@ export default function LocalPlayerArea({
       {/* Center — influence cards */}
       <div className="flex gap-4">
         {player.cards.map((cardData, i) => (
-          <div key={i} className="corner-brackets">
+          <button
+            key={i}
+            onClick={() => !cardData.revealed && cardData.card && setSelectedCard(cardData.card)}
+            disabled={cardData.revealed || !cardData.card}
+            className="corner-brackets cursor-pointer transition-transform hover:scale-105 disabled:cursor-default disabled:hover:scale-100"
+            title={!cardData.revealed && cardData.card ? `View ${cardData.card} abilities` : undefined}
+          >
             <div
               className={`relative h-44 w-28 overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.8)] ${
                 cardData.revealed
@@ -87,7 +98,7 @@ export default function LocalPlayerArea({
                 )}
               </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -100,6 +111,11 @@ export default function LocalPlayerArea({
           </span>
         </div>
       )}
-    </div>
+      </div>
+
+      {selectedCard && (
+        <CardInfoModal card={selectedCard} onClose={() => setSelectedCard(null)} />
+      )}
+    </>
   );
 }

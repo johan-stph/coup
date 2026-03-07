@@ -1,13 +1,22 @@
+import { useState } from 'react';
 import type { GamePlayer } from '~/lib/gameMockData';
 import { CARD_IMAGES } from '~/lib/cardImages';
+import PlayerInfoModal from './PlayerInfoModal';
 
 interface PlayerCardProps {
   player: GamePlayer;
 }
 
 export default function PlayerCard({ player }: PlayerCardProps) {
+  const [showModal, setShowModal] = useState(false);
+
   return (
-    <div className="flex w-28 flex-col items-center gap-2">
+    <>
+    <div
+      className="flex w-28 flex-col items-center gap-2 cursor-pointer transition-transform hover:scale-105"
+      onClick={() => setShowModal(true)}
+      title={`View ${player.userName}'s profile`}
+    >
       {/* Avatar placeholder */}
       <div className="corner-brackets">
         <div className="flex h-16 w-16 items-center justify-center bg-surface">
@@ -87,5 +96,10 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         ))}
       </div>
     </div>
+
+      {showModal && (
+        <PlayerInfoModal player={player} onClose={() => setShowModal(false)} />
+      )}
+    </>
   );
 }
