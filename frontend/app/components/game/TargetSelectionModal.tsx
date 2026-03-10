@@ -49,7 +49,7 @@ export default function TargetSelectionModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="corner-brackets">
-        <div className="flex w-[600px] flex-col items-center gap-6 bg-void p-8">
+        <div className="flex w-[calc(100vw-2rem)] flex-col items-center gap-4 bg-void p-5 sm:w-[600px] sm:gap-6 sm:p-8">
           {/* Title */}
           <div className="flex flex-col items-center gap-2">
             <span className="font-mono text-[10px] tracking-[0.3em] text-text-muted">
@@ -74,7 +74,7 @@ export default function TargetSelectionModal({
                 }`}
               >
                 <div
-                  className={`flex flex-col items-center gap-3 p-4 transition-all ${
+                  className={`flex flex-col items-center gap-2 p-3 transition-all sm:gap-3 sm:p-4 ${
                     selectedUid === player.uid
                       ? 'bg-neon-red/20 border-2 border-neon-red'
                       : 'bg-surface-light border-2 border-surface-light'
@@ -82,14 +82,14 @@ export default function TargetSelectionModal({
                 >
                   {/* Player avatar */}
                   <div
-                    className={`flex h-16 w-16 items-center justify-center rounded-full ${
+                    className={`flex h-10 w-10 items-center justify-center rounded-full sm:h-16 sm:w-16 ${
                       selectedUid === player.uid
                         ? 'bg-neon-red/30'
                         : 'bg-surface'
                     }`}
                   >
                     <svg
-                      className={`h-8 w-8 ${
+                      className={`h-5 w-5 sm:h-8 sm:w-8 ${
                         selectedUid === player.uid
                           ? 'text-neon-red'
                           : 'text-text-muted'
@@ -103,7 +103,7 @@ export default function TargetSelectionModal({
 
                   {/* Player name */}
                   <span
-                    className={`font-display text-sm font-semibold tracking-wider ${
+                    className={`font-display text-xs font-semibold tracking-wider sm:text-sm ${
                       selectedUid === player.uid
                         ? 'text-neon-red'
                         : 'text-white'
@@ -113,7 +113,7 @@ export default function TargetSelectionModal({
                   </span>
 
                   {/* Player info */}
-                  <div className="flex items-center gap-3 text-xs">
+                  <div className="flex items-center gap-2 text-xs sm:gap-3">
                     <span className="flex items-center gap-1 font-mono text-neon-cyan">
                       <svg
                         className="h-3 w-3"
@@ -135,7 +135,7 @@ export default function TargetSelectionModal({
                   {/* Selection indicator */}
                   {selectedUid === player.uid && (
                     <span className="font-mono text-[8px] tracking-widest text-neon-red">
-                      TARGET SELECTED
+                      SELECTED
                     </span>
                   )}
                 </div>
