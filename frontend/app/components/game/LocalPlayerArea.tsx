@@ -39,11 +39,11 @@ export default function LocalPlayerArea({
       </div>
 
       {/* Center — influence cards */}
-      <div className="flex gap-4">
+      <div className="flex gap-3 sm:gap-4">
         {player.cards.map((cardData, i) => (
           <div key={i} className="corner-brackets">
             <div
-              className={`relative h-44 w-28 overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.8)] ${
+              className={`relative h-32 w-20 overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.8)] sm:h-44 sm:w-28 ${
                 cardData.revealed
                   ? 'border-2 border-neon-red/50'
                   : 'border-2 border-neon-cyan/50'
