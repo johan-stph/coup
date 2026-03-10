@@ -120,9 +120,9 @@ export default function PendingActionDisplay({
   const isBlockPhase = phase === 'awaiting_block';
 
   return (
-    <div className="fixed left-1/2 top-20 z-40 -translate-x-1/2 transform">
+    <div className="fixed left-1/2 top-20 z-40 w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 transform">
       <div className="corner-brackets">
-        <div className="flex flex-col items-center gap-3 bg-void-light/95 px-8 py-6 backdrop-blur-sm">
+        <div className="flex flex-col items-center gap-3 bg-void-light/95 px-6 py-5 backdrop-blur-sm sm:px-8 sm:py-6">
           {/* Phase indicator with timer */}
           <div className="flex items-center gap-3">
             <span className="font-mono text-[10px] tracking-[0.3em] text-text-muted">
@@ -183,7 +183,7 @@ export default function PendingActionDisplay({
             onChallenge && (
               <button
                 onClick={onChallenge}
-                className="btn-glow mt-2 border border-neon-cyan px-8 py-2 text-center font-display text-xs font-semibold tracking-widest text-neon-cyan transition-all hover:bg-neon-cyan/10 hover:cursor-pointer"
+                className="btn-glow mt-2 w-full border border-neon-cyan px-8 py-3 text-center font-display text-xs font-semibold tracking-widest text-neon-cyan transition-all hover:bg-neon-cyan/10 hover:cursor-pointer"
               >
                 CHALLENGE
               </button>
@@ -195,7 +195,7 @@ export default function PendingActionDisplay({
             onChallengeBlock && (
               <button
                 onClick={onChallengeBlock}
-                className="btn-glow mt-2 border border-neon-cyan px-8 py-2 text-center font-display text-xs font-semibold tracking-widest text-neon-cyan transition-all hover:bg-neon-cyan/10 hover:cursor-pointer"
+                className="btn-glow mt-2 w-full border border-neon-cyan px-8 py-3 text-center font-display text-xs font-semibold tracking-widest text-neon-cyan transition-all hover:bg-neon-cyan/10 hover:cursor-pointer"
               >
                 CHALLENGE BLOCK
               </button>

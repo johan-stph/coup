@@ -386,7 +386,7 @@ export default function Game() {
       </div>
 
       {/* Main area */}
-      <main className="flex flex-1 flex-col justify-between pb-24">
+      <main className="flex flex-1 flex-col justify-between pb-40 sm:pb-24">
         {/* Opponents row */}
         <div className="flex flex-wrap justify-center gap-6 px-4 py-4">
           {opponents.map((opponent) => (

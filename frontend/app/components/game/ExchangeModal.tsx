@@ -41,7 +41,7 @@ export default function ExchangeModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="corner-brackets">
-        <div className="flex w-[560px] flex-col items-center gap-6 bg-void p-8">
+        <div className="flex w-[calc(100vw-2rem)] flex-col items-center gap-4 bg-void p-5 sm:w-[560px] sm:gap-6 sm:p-8">
           {/* Title */}
           <div className="flex flex-col items-center gap-2">
             <span className="font-mono text-[10px] tracking-[0.3em] text-neon-cyan">
@@ -57,7 +57,7 @@ export default function ExchangeModal({
           </div>
 
           {/* Cards */}
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:w-auto sm:justify-center sm:gap-4">
             {allCards.map(({ card, source }, index) => {
               const isSelected = selectedIndices.includes(index);
               const isDisabled =
@@ -67,14 +67,14 @@ export default function ExchangeModal({
                   key={index}
                   onClick={() => toggleCard(index)}
                   disabled={isDisabled}
-                  className={`corner-brackets transition-all hover:scale-105 ${
+                  className={`corner-brackets w-full transition-all hover:scale-105 sm:w-auto ${
                     isDisabled
                       ? 'opacity-40 cursor-not-allowed'
                       : 'hover:cursor-pointer'
                   } ${isSelected ? 'shadow-glow' : ''}`}
                 >
                   <div
-                    className={`relative h-52 w-36 overflow-hidden transition-all shadow-[0_12px_40px_rgba(0,0,0,0.8)] ${
+                    className={`relative aspect-[9/14] w-full overflow-hidden transition-all shadow-[0_12px_40px_rgba(0,0,0,0.8)] sm:h-52 sm:w-36 sm:aspect-auto ${
                       isSelected
                         ? 'border-2 border-neon-cyan shadow-[0_0_24px_rgba(0,255,255,0.3)]'
                         : 'border-2 border-surface-light'
@@ -131,7 +131,7 @@ export default function ExchangeModal({
           <button
             onClick={handleConfirm}
             disabled={selectedIndices.length !== mustKeep}
-            className="btn-glow w-full border border-neon-cyan py-3 text-center font-display text-sm font-semibold tracking-widest text-neon-cyan transition-all hover:bg-neon-cyan/10 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-glow w-full max-w-xs border border-neon-cyan py-3 text-center font-display text-sm font-semibold tracking-widest text-neon-cyan transition-all hover:bg-neon-cyan/10 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 sm:max-w-none"
           >
             CONFIRM EXCHANGE
           </button>
