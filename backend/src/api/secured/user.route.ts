@@ -3,6 +3,7 @@ import { z } from 'zod';
 import registry from '../../openapi/openApiRegistry';
 import { AuthRequest } from '../../auth/auth.middleware';
 import User from '../../db/models/User.model';
+import PlayerStats from '../../db/models/PlayerStats.model';
 import { CREATED, INTERNAL_SERVER_ERROR } from '../../constants/http';
 import logger from '../../utils/logger/logger';
 
@@ -171,6 +172,56 @@ router.post('/profile', async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error creating user profile:', error);
+    return res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: 'Internal server error' });
+  }
+});
+
+const PlayerStatsSchema = registry.register(
+  'PlayerStats',
+  z.object({
+    gamesPlayed: z.number(),
+    gamesWon: z.number(),
+    gamesLost: z.number(),
+  })
+);
+
+// GET /api/user/stats - Get stats for the authenticated user
+registry.registerPath({
+  method: 'get',
+  path: '/api/user/stats',
+  summary: 'Get player stats',
+  security: [{ BearerAuth: [] }],
+  responses: {
+    200: {
+      description: 'Player statistics',
+      content: {
+        'application/json': {
+          schema: PlayerStatsSchema,
+        },
+      },
+    },
+  },
+});
+
+router.get('/stats', async (req: AuthRequest, res: Response) => {
+  try {
+    const firebaseUid = req.user?.uid;
+
+    if (!firebaseUid) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const stats = await PlayerStats.findById(firebaseUid);
+
+    return res.json({
+      gamesPlayed: stats?.gamesPlayed ?? 0,
+      gamesWon: stats?.gamesWon ?? 0,
+      gamesLost: stats?.gamesLost ?? 0,
+    });
+  } catch (error) {
+    logger.error('Error fetching player stats:', error);
     return res
       .status(INTERNAL_SERVER_ERROR)
       .json({ error: 'Internal server error' });

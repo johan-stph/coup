@@ -291,6 +291,26 @@ export async function advanceTurn(gameState: IGameState): Promise<void> {
       { status: 'finished' }
     );
 
+    // Update player stats atomically
+    const PlayerStats = (
+      await import('../../db/models/PlayerStats.model.js')
+    ).default;
+    await PlayerStats.bulkWrite(
+      gameState.players.map((player) => ({
+        updateOne: {
+          filter: { _id: player.uid },
+          update: {
+            $inc: {
+              gamesPlayed: 1,
+              gamesWon: player.uid === winner?.uid ? 1 : 0,
+              gamesLost: player.uid !== winner?.uid ? 1 : 0,
+            },
+          },
+          upsert: true,
+        },
+      }))
+    );
+
     return;
   }
 
